@@ -105,6 +105,7 @@ if __name__ == "__main__":
 
     count_df = pd.DataFrame(index=region_df.index, 
                             columns=args.sample_names, 
+                            dtype=int, 
                             )
 
     
