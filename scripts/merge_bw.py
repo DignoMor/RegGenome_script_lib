@@ -18,7 +18,7 @@ def combine_bw_intervals(rep1, rep2, chrom_length, verbose=False):
     rep1 - iterable of intervals from replicate 1
     rep2 - iterable of intervals from replicate 2
     chrom_length - The totoal length of the chromosome where the intervals originates
-    verobse - whether to write logs to stderr
+    verbose - whether to write logs to stderr
     '''
 
     rep1_pointer = 0
