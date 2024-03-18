@@ -47,6 +47,8 @@ class GTFHandle:
         self.comments = self.__open_gtf_and_read_comments(self.gtf_path)
 
     def __iter__(self):
+        self.__gtf_file.close()
+        _ = self.__open_gtf_and_read_comments(self.gtf_path)
         return self
     
     def __open_gtf_and_read_comments(self, gtf_path):
@@ -72,8 +74,6 @@ class GTFHandle:
             
             # Stop iteration if eof
             if not self.__current_line: 
-                self.__gtf_file.close()
-                _ = self.__open_gtf_and_read_comments(self.gtf_path)
                 raise StopIteration
 
             current_record = self.__parse_line(self.__current_line)
