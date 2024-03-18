@@ -49,11 +49,6 @@ class GTFHandle:
 
         self.comments = self.__open_gtf_and_read_comments(self.gtf_path)
 
-    def __iter__(self):
-        self.__gtf_file.close()
-        _ = self.__open_gtf_and_read_comments(self.gtf_path)
-        return self
-    
     def __open_gtf_and_read_comments(self, gtf_path):
         '''
         Read the gtf file, store and comments and point self.__current_line 
@@ -69,6 +64,12 @@ class GTFHandle:
 
         return comments
 
+    def __iter__(self):
+        self.__gtf_file.close()
+        _ = self.__open_gtf_and_read_comments(self.gtf_path)
+        return self
+    
+
     def __next__(self):
         while True: 
             # skip empty lines
@@ -77,7 +78,6 @@ class GTFHandle:
             
             # Stop iteration if eof
             if not self.__current_line: 
-                self.__gtf_file.close()
                 raise StopIteration
 
             current_record = self.__parse_line(self.__current_line)
