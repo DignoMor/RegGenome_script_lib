@@ -3,6 +3,8 @@
 import os
 import pandas as pd
 
+from .exceptions import RGToolsInternalException, GTFHandleFilterException, GTFRecordNoFeatureException
+
 class GTFRecord:
     def __init__(self, chr_name:str, record_source:str, feature_type:str, start_loc:int, 
                  end_loc:int, score:str, strand:str, phase:str, add_info:dict):
@@ -21,7 +23,8 @@ class GTFRecord:
     
         # sanity check
         # TODO: add more
-        assert self.__general_info_dict["strand"] in ("+", "-")
+        if not self.__general_info_dict["strand"] in ("+", "-"):
+            raise RGToolsInternalException("GTF input error. (invalid strandness value: {})".format(self.__general_info_dict["strand"]))
     
     def _print_all_info(self):
         print(self.__general_info_dict)
@@ -31,13 +34,13 @@ class GTFRecord:
         if query in self.__general_info_dict.keys():
             return self.__general_info_dict[query]
         else:
-            return None
+            raise GTFRecordNoFeatureException("No feature in general info: {}".format(query))
 
     def search_add_info(self, query):
         if query in self.__add_info_dict.keys():
             return self.__add_info_dict[query]
         else:
-            return None
+            raise GTFRecordNoFeatureException("No feature in additional info: {}".format(query))
     
 class GTFHandle:
     def __init__(self, gtf_path, filter=lambda x: True):
@@ -47,6 +50,8 @@ class GTFHandle:
         self.comments = self.__open_gtf_and_read_comments(self.gtf_path)
 
     def __iter__(self):
+        self.__gtf_file.close()
+        _ = self.__open_gtf_and_read_comments(self.gtf_path)
         return self
     
     def __open_gtf_and_read_comments(self, gtf_path):
@@ -73,7 +78,6 @@ class GTFHandle:
             # Stop iteration if eof
             if not self.__current_line: 
                 self.__gtf_file.close()
-                _ = self.__open_gtf_and_read_comments(self.gtf_path)
                 raise StopIteration
 
             current_record = self.__parse_line(self.__current_line)
@@ -117,7 +121,11 @@ class GTFHandle:
     
     def _is_record_passed_filter(self, record):
         # Return False if to filter
-        return self.__record_filter(record)
+        try: 
+            is_passed = self.__record_filter(record)
+            return is_passed
+        except GTFRecordNoFeatureException as e:
+            raise GTFHandleFilterException(e)
         
     def get_comments(self):
         comment_lines = [s[1:].lstrip().replace("\n", "") for s in self.comments]
@@ -139,4 +147,20 @@ class GTFHandle:
             count += 1
         
         return count
+    
+    def filter_check(self, n_lines=None):
+        '''
+        Check if filter is valid
+        '''
+        if not n_lines:
+            for _ in self:
+                pass
+        
+        else:
+            count = 0
+            for _ in self:
+                count += 1
+                
+                if count > n_lines:
+                    break
     
