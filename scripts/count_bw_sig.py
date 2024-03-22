@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import pyBigWig
 
+from RGTools.utils import str2bool
+
 def set_parser(parser):
     parser.add_argument("--job_name", 
                         help="Name of the job (also output file prefix).", 
@@ -58,6 +60,13 @@ def set_parser(parser):
                         type=str, 
                         required=True, 
                         dest="opath", 
+                        )
+    
+    parser.add_argument("--ignore_strandness", 
+                        help="If to ignore strandness.", 
+                        type=str2bool, 
+                        default=False, 
+                        dest="ignore_strandness", 
                         )
 
 def parse_region_input(region_file, file_type):
@@ -135,6 +144,9 @@ if __name__ == "__main__":
     region_df = parse_region_input(args.region_file_path, 
                                    args.region_file_type, 
                                    )
+
+    if args.ignore_strandness:
+        region_df["strand"] = "."
 
     count_df = pd.DataFrame(index=region_df.index, 
                             columns=args.sample_names, 
