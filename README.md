@@ -39,6 +39,11 @@ in a gtf annotation.
 This program merge the signal by base-pair 
 from 2 bigWig files.
 
+### plot_heatmap.py
+
+This program read a count table (as produced by `merge_bw.py`) 
+and plot a clustermap with seaborn.
+
 ### summarize_RSEM.py
 
 This program converts RSEM results to 
