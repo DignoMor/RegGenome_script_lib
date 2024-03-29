@@ -2,6 +2,7 @@
 
 import argparse
 import RGTools
+import sys
 
 import pandas as pd
 
@@ -114,7 +115,12 @@ if __name__ == '__main__':
         "strand": strand_list,
     })
 
-    bed_df.to_csv(args.bed_out,
+    if args.bed_out == "stdout":
+        bed_out = sys.stdout
+    else:
+        bed_out = args.bed_out
+
+    bed_df.to_csv(bed_out,
                   sep="\t",
                   header=False,
                   index=False,
