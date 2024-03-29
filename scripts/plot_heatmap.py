@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # plot a heatmap based on a count table
 
 import argparse
