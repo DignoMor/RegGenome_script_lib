@@ -8,6 +8,11 @@ the usage of each scripts. For detailed
 input/output, please use the `--help` flag 
 for each script.
 
+### bed2tssbed.py
+
+This program extract the TSS from transcripts 
+defined by a bed6 file.
+
 ### compute_bw_correlation.py
 
 This program computes correlation 
