@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 import argparse
+import sys
 import re
+
 import pandas as pd
 
 import RGTools
@@ -19,6 +21,9 @@ def set_parser(parser):
                         help="The window size [250-250]. The default is to return 501 bp window with tss in middle.")
 
 if __name__ == "__main__":
+    sys.stderr.write("DEPRECATED! Use a combination of `gtf_search.py`"
+                     "and `bed2tssbed.py` instead!\n\n")
+
     parser = argparse.ArgumentParser(prog="Gen TSS bed from GTF.")
     set_parser(parser=parser)
     args = parser.parse_args()

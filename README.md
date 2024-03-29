@@ -24,6 +24,9 @@ and a region file.
 
 ### gen_tss_bed_from_gtf.py
 
+DEPRECATED! Use a combination of 
+`gtf_search.py` and `bed2tssbed.py` instead!
+
 This program output a bed file with regions 
 centering at TSS according to a GTF 
 annotation.
