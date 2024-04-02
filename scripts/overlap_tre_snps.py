@@ -140,7 +140,7 @@ if __name__ == "__main__":
                          sep="\t", 
                          )
     
-    with open(os.path.join(args.opath, args.project_name + "info.json"), "w") as f:
+    with open(os.path.join(args.opath, args.project_name + ".info.json"), "w") as f:
         f.write(json.dumps(info_dict, indent=4))
 
     tre_w_intersect_df.to_csv(os.path.join(args.opath, args.project_name + ".tre.bed",),
@@ -149,7 +149,7 @@ if __name__ == "__main__":
                               sep="\t", 
                               )
 
-    filtered_tres_w_intersect_df.to_csv(os.path.join(args.opath, args.project_name + ".length_filtered_tre.bed",),
+    filtered_tres_w_intersect_df.to_csv(os.path.join(args.opath, args.project_name + ".tre.filtered.bed",),
                                         index=False, 
                                         header=False, 
                                         sep="\t", 
