@@ -157,7 +157,7 @@ if __name__ == "__main__":
             if contig_name in base_info_chroms:
                 mutated_contig = mutate_contig(record_seq, base_info_df)
                     
-            with open(args.opath, "w") as output_fasta:
+            with open(args.opath, "w+") as output_fasta:
                 mutated_record = SeqRecord.SeqRecord(seq=mutated_contig, 
                                                      id=contig_name, 
                                                      name=record.name, 
