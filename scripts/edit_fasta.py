@@ -149,6 +149,7 @@ if __name__ == "__main__":
 
     base_info_chroms = base_info_df["chrom"].unique()
 
+    mutated_records = []
     with open(args.ref_fasta, "r") as ref_fasta:
         for record in SeqIO.parse(ref_fasta, "fasta"):
             contig_name = record.id
@@ -156,13 +157,18 @@ if __name__ == "__main__":
 
             if contig_name in base_info_chroms:
                 mutated_contig = mutate_contig(record_seq, base_info_df)
+            else:
+                mutated_contig = record_seq
                     
-            with open(args.opath, "w+") as output_fasta:
-                mutated_record = SeqRecord.SeqRecord(seq=mutated_contig, 
-                                                     id=contig_name, 
-                                                     name=record.name, 
-                                                     description=record.description, 
-                                                     )
-                SeqIO.write(mutated_record, output_fasta, "fasta")
+            mutated_record = SeqRecord.SeqRecord(seq=mutated_contig, 
+                                                 id=contig_name, 
+                                                 name=record.name, 
+                                                 description=record.description, 
+                                                 )
+
+            mutated_records.append(mutated_record)
+
+    with open(args.opath, "w") as output_fasta:
+        SeqIO.write(mutated_records, output_fasta, "fasta")
 
                 
