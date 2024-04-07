@@ -23,12 +23,18 @@ def set_parser(parser):
                         type=str, 
                         )
     
-    parser.add_argument("--base_info_path", \
+    parser.add_argument("--base_info_path",
                         help="Path to the base info file. "
                              "File should be in standard bed6 format with "
                              "an extra 7th column for bases. Bases should be " 
                              "comma seperated. Currently only suport 2 polymorphisms.", 
                         required=True, 
+                        type=str, 
+                        )
+    
+    parser.add_argument("--filtered_base_info_opath", 
+                        help="Output path for filtered base info file.", 
+                        default=None, 
                         type=str, 
                         )
 
@@ -135,6 +141,12 @@ if __name__ == "__main__":
                                       ], 
                                )
     base_info_df = filter_base_info(base_info_df)
+    if args.filtered_base_info_opath:
+        base_info_df.to_csv(args.filtered_base_info_opath, 
+                            index=False, 
+                            sep="\t", 
+                            )
+
     base_info_chroms = base_info_df["chrom"].unique()
 
     with open(args.ref_fasta, "r") as ref_fasta:
