@@ -148,6 +148,8 @@ if __name__ == "__main__":
             with open(args.opath, "w") as output_fasta:
                 mutated_record = SeqRecord.SeqRecord(seq=mutated_contig, 
                                                      id=contig_name, 
+                                                     name=record.name, 
+                                                     description=record.description, 
                                                      )
                 SeqIO.write(mutated_record, output_fasta, "fasta")
 
