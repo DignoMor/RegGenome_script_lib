@@ -15,6 +15,12 @@ class BedTable3:
         '''
         pass
 
+    def load_from_dataframe(self, df: pd.DataFrame) -> None:
+        '''
+        Load a pd.DataFrame.
+        '''
+        pass
+
     def apply_logical_filter(self, logical_array: np.array) -> BedTable3:
         '''
         Use a logical np.array to filter the table.
