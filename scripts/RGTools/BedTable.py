@@ -25,6 +25,7 @@ class BedTable3:
     def region_subset(self, chrom: str, start: int, end: int) -> BedTable3:
         '''
         Subset the table to the given region.
+        Only return regions that are fully contained in the given region.
         Return a new BedTable3 instance.
         '''
         pass
