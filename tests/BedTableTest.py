@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from .BedTable import BedTable3
+from scripts.RGTools.BedTable import BedTable3
 
 class TestBedTable3(unittest.TestCase):
     def setUp(self) -> None:
