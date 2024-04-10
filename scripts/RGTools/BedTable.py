@@ -72,13 +72,13 @@ class BedTable3:
         '''
         pass
 
-    def sort(self) -> None:
+    def _sort(self) -> None:
         '''
         Sort the bed table.
         '''
         pass
 
-    def _is_sort(self) -> bool:
+    def _is_sorted(self) -> bool:
         '''
         Check if the table is sorted.
         '''
