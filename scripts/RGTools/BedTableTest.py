@@ -1,11 +1,12 @@
 
 import unittest
+import shutil
 import os
 
 import numpy as np
 import pandas as pd
 
-from RGTools.BedTable import BedTable3
+from .BedTable import BedTable3
 
 class TestBedTable3(unittest.TestCase):
     def setUp(self) -> None:
@@ -30,7 +31,7 @@ class TestBedTable3(unittest.TestCase):
     
     def tearDown(self) -> None:
         if os.path.exists(self.__data_dir):
-            os.rmdir(self.__data_dir)
+            shutil.rmtree(self.__data_dir)
 
         return super().tearDown()
     
@@ -135,7 +136,7 @@ class TestBedTable3(unittest.TestCase):
 
     def test_iter_regions(self):
         bed_table = self.__init_test_bed_table()
-        start_locs = np.array[["start"] for r in bed_table.iter_regions()]
+        start_locs = np.array([r["start"] for r in bed_table.iter_regions()])
 
         self.assertEqual(start_locs,
                          bed_table.get_start_locs(),
@@ -165,3 +166,6 @@ class TestBedTable3(unittest.TestCase):
         bed_table.load_from_file(self.__data_file)
 
         return bed_table
+
+if __name__ == "__main__":
+    unittest.main()
