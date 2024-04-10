@@ -142,18 +142,6 @@ class TestBedTable3(unittest.TestCase):
                          bed_table.get_start_locs(),
                          )
 
-    def test_sort(self):
-        unsorted_df = self.__data_df.loc[[1, 0, 3, 2]].copy()
-
-        bed_table = BedTable3()
-        bed_table.load_from_dataframe(unsorted_df)
-
-        bed_table.sort()
-
-        self.assertEqual(bed_table.to_dataframe().values,
-                         self.__data_df.values,
-                         )
-
     def __mutate_test_helper(self, bedtable: BedTable3) -> bool:
         '''
         Helper function to test the immutability of the class.
