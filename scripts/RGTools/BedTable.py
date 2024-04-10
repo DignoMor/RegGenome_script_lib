@@ -21,14 +21,14 @@ class BedTable3:
         '''
         pass
 
-    def apply_logical_filter(self, logical_array: np.array) -> BedTable3:
+    def apply_logical_filter(self, logical_array: np.array) -> 'BedTable3':
         '''
         Use a logical np.array to filter the table.
         Return a new BedTable3 instance.
         '''
         pass
 
-    def region_subset(self, chrom: str, start: int, end: int) -> BedTable3:
+    def region_subset(self, chrom: str, start: int, end: int) -> 'BedTable3':
         '''
         Subset the table to the given region.
         Only return regions that are fully contained in the given region.
