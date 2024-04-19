@@ -296,5 +296,8 @@ class TestBedTable6Plus(TestBedTable):
 
         return bed_table
 
+    # TODO: add test for:
+    # * __force_dtype
+
 if __name__ == "__main__":
     unittest.main()
