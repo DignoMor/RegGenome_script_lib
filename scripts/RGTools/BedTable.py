@@ -24,17 +24,22 @@ class BedTableIterator:
 
 class BedTable3:
     def __init__(self):
-        self.__column_names = ["chrom", "start", "end"]
-        self.__data_df = pd.DataFrame(columns=self.__column_names)
-        
+        super().__init__()
+        self._data_df = pd.DataFrame(columns=self.column_names)
+
+    # public methods
+    @property
+    def column_names(self):
+        return ["chrom", "start", "end"]
+
     def load_from_file(self, ipath: str) -> None:
         '''
         Load a bed file.
         '''
         try:
-            self.__data_df = pd.read_csv(ipath, 
+            self._data_df = pd.read_csv(ipath, 
                                          sep="\t", 
-                                         names=self.__column_names,
+                                         names=self.column_names,
                                          )
         except ValueError as e:
             raise BedTableLoadException(f"Error loading bed file: number of columns does not match.")
@@ -47,7 +52,7 @@ class BedTable3:
         Load a pd.DataFrame.
         '''
         try:
-            self.__data_df = pd.DataFrame(df.values, columns=self.__column_names)
+            self._data_df = pd.DataFrame(df.values, columns=self.column_names)
         except ValueError as e:
             raise BedTableLoadException(f"Error loading pd.DataFrame: number of columns does not match.")
 
@@ -65,18 +70,17 @@ class BedTable3:
             raise ValueError("logical_array must be a boolean np.array")
 
         new_bed_table = BedTable3()
-        new_bed_table.load_from_dataframe(self.__data_df.loc[logical_array])
+        new_bed_table.load_from_dataframe(self._data_df.loc[logical_array])
 
         return new_bed_table
         
-
     def region_subset(self, chrom: str, start: int, end: int) -> 'BedTable3':
         '''
         Subset the table to the given region.
         Only return regions that are fully contained in the given region.
         Return a new BedTable3 instance.
         '''
-        subset_data_df = self.__data_df.loc[self.__data_df["chrom"] == chrom]
+        subset_data_df = self._data_df.loc[self._data_df["chrom"] == chrom]
         subset_data_df = subset_data_df.loc[subset_data_df["start"] >= start]
         subset_data_df = subset_data_df.loc[subset_data_df["end"] <= end]
 
@@ -89,13 +93,13 @@ class BedTable3:
         '''
         Return the table as a copy of pd.DataFrame
         '''
-        return self.__data_df.copy()
+        return self._data_df.copy()
 
     def write(self, opath: str) -> None:
         '''
         Write the table to a bed file.
         '''
-        self.__data_df.to_csv(opath, 
+        self._data_df.to_csv(opath, 
                               sep="\t", 
                               header=False, 
                               index=False, 
@@ -105,25 +109,25 @@ class BedTable3:
         '''
         Return a np.array of chrom names.
         '''
-        return self.__data_df["chrom"].values
+        return self._data_df["chrom"].values
 
     def get_start_locs(self) -> np.array:
         '''
         Return a np.array of start locations.
         '''
-        return self.__data_df["start"].values
+        return self._data_df["start"].values
 
     def get_end_locs(self) -> np.array:
         '''
         Return a np.array of end locations.
         '''
-        return self.__data_df["end"].values
+        return self._data_df["end"].values
     
     def get_region_by_index(self, index: int) -> pd.Series:
         '''
         Return a region by index.
         '''
-        return self.__data_df.iloc[index]
+        return self._data_df.iloc[index]
     
     def iter_regions(self) -> tuple:
         '''
@@ -135,24 +139,50 @@ class BedTable3:
         '''
         Sort the bed table.
         '''
-        self.__data_df.sort_values(by=["chrom", "start", "end"], inplace=True)
-        self.__data_df.reset_index(drop=True, inplace=True)
+        self._data_df.sort_values(by=["chrom", "start", "end"], inplace=True)
+        self._data_df.reset_index(drop=True, inplace=True)
 
     def _is_sorted(self) -> bool:
         '''
         Check if the table is sorted.
         '''
-        for i in range(1, len(self.__data_df)):
-            if self.__data_df.iloc[i]["chrom"] < self.__data_df.iloc[i-1]["chrom"]:
+        for i in range(1, len(self._data_df)):
+            if self._data_df.iloc[i]["chrom"] < self._data_df.iloc[i-1]["chrom"]:
                 return False
-            if self.__data_df.iloc[i]["chrom"] == self.__data_df.iloc[i-1]["chrom"]:
-                if self.__data_df.iloc[i]["start"] < self.__data_df.iloc[i-1]["start"]:
+            if self._data_df.iloc[i]["chrom"] == self._data_df.iloc[i-1]["chrom"]:
+                if self._data_df.iloc[i]["start"] < self._data_df.iloc[i-1]["start"]:
                     return False
-                if self.__data_df.iloc[i]["start"] == self.__data_df.iloc[i-1]["start"]:
-                    if self.__data_df.iloc[i]["end"] < self.__data_df.iloc[i-1]["end"]:
+                if self._data_df.iloc[i]["start"] == self._data_df.iloc[i-1]["start"]:
+                    if self._data_df.iloc[i]["end"] < self._data_df.iloc[i-1]["end"]:
                         return False
 
         return True
 
     def __len__(self) -> int:
-        return self.__data_df.shape[0]
+        return self._data_df.shape[0]
+
+class BedTable6(BedTable3):
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def column_names(self):
+        return ["chrom", "start", "end", "name", "score", "strand"]
+    
+    def get_region_names(self) -> np.array:
+        '''
+        Return a np.array of region names.
+        '''
+        return self._data_df["name"].values
+    
+    def get_region_scores(self) -> np.array:
+        '''
+        Return a np.array of region scores.
+        '''
+        return self._data_df["score"].values
+    
+    def get_region_strands(self) -> np.array:
+        '''
+        Return a np.array of region strands.
+        '''
+        return self._data_df["strand"].values
