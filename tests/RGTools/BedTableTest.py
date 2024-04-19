@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from scripts.RGTools.BedTable import BedTable3, BedTable6
+from scripts.RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
 
 class TestBedTable(unittest.TestCase):
     # Public methods for testing BedTable
@@ -188,10 +188,10 @@ class TestBedTable6(TestBedTable):
         })
 
         self.data_df.to_csv(self.data_file, 
-                              sep="\t", 
-                              header=False, 
-                              index=False, 
-                              )
+                            sep="\t", 
+                            header=False, 
+                            index=False, 
+                            )
         
     def tearDown(self) -> None:
         super().tearDown()
@@ -233,6 +233,65 @@ class TestBedTable6(TestBedTable):
 
     def __init_test_bed_table(self) -> BedTable6:
         bed_table = BedTable6()
+        bed_table.load_from_file(self.data_file)
+
+        return bed_table
+
+class TestBedTable6Plus(TestBedTable):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.data_df = pd.DataFrame({
+            "chrom": ["chr1", "chr1", "chr2", "chr2"],
+            "start": [1, 8, 3, 4],
+            "end": [5, 12, 7, 8],
+            "name": ["name1", "name2", "name3", "name4"],
+            "score": [0.1, 0.2, 0.3, 0.4],
+            "strand": ["+", "-", "+", "-"],
+            "extra_str_field": ["extra1", "extra2", "extra3", "extra4"],
+            "extra_int_field": [1, 2, 3, 4],
+        })
+
+        self.extra_field_names = list(self.data_df.columns[6:])
+        self.extra_field_dtype = [str, int]
+
+        self.data_df.to_csv(self.data_file, 
+                            sep="\t", 
+                            header=False, 
+                            index=False, 
+                            )
+
+    def tearDown(self) -> None:
+        return super().tearDown()
+
+    def test_get_region_extra_column(self):
+        bed_table = self.__init_test_bed_table()
+
+        for extra_field_name, extra_field_dtype in zip(self.extra_field_names, self.extra_field_dtype):
+            extra_field_data = bed_table.get_region_extra_column(extra_field_name)
+
+            self.assertArrayEqual(extra_field_data, self.data_df[extra_field_name].values)
+
+    def test_load_from_dataframe(self):
+        bed_table = BedTable6Plus(self.extra_field_names, 
+                                  extra_column_dtype=self.extra_field_dtype, 
+                                  )
+        bed_table.load_from_dataframe(self.data_df.copy())
+        self.assertArrayEqual(bed_table.to_dataframe().values, self.data_df.values)
+
+    def test_load_from_file(self):
+        bed_table = BedTable6Plus(self.extra_field_names,
+                                  extra_column_dtype=self.extra_field_dtype,
+                                  )
+        bed_table.load_from_file(self.data_file)
+
+        self.assertArrayEqual(bed_table.to_dataframe().values, self.data_df.values)
+
+    def __init_test_bed_table(self):
+        bed_table = BedTable6Plus(extra_column_names=self.extra_field_names,
+                                  extra_column_dtype=self.extra_field_dtype, 
+                                  )
+
         bed_table.load_from_file(self.data_file)
 
         return bed_table
