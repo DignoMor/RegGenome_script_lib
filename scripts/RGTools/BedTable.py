@@ -31,6 +31,13 @@ class BedTable3:
     @property
     def column_names(self):
         return ["chrom", "start", "end"]
+    
+    @property
+    def column_types(self):
+        '''
+        A dictionary of column types.
+        '''
+        return {"chrom": str, "start": int, "end": int}
 
     def load_from_file(self, ipath: str) -> None:
         '''
@@ -44,6 +51,8 @@ class BedTable3:
         except ValueError as e:
             raise BedTableLoadException(f"Error loading bed file: number of columns does not match.")
         
+        self.__force_dtype()
+
         if not self._is_sorted():
             self._sort()
 
@@ -52,9 +61,13 @@ class BedTable3:
         Load a pd.DataFrame.
         '''
         try:
-            self._data_df = pd.DataFrame(df.values, columns=self.column_names)
+            self._data_df = pd.DataFrame(df.values, 
+                                         columns=self.column_names, 
+                                         )
         except ValueError as e:
             raise BedTableLoadException(f"Error loading pd.DataFrame: number of columns does not match.")
+        
+        self.__force_dtype()
 
         if not self._is_sorted():
             self._sort()
@@ -158,6 +171,13 @@ class BedTable3:
 
         return True
 
+    def __force_dtype(self):
+        '''
+        Force the column types.
+        '''
+        for field, field_dtype in self.column_types.items():
+            self._data_df[field] = self._data_df[field].astype(field_dtype)
+
     def __len__(self) -> int:
         return self._data_df.shape[0]
 
@@ -168,6 +188,14 @@ class BedTable6(BedTable3):
     @property
     def column_names(self):
         return ["chrom", "start", "end", "name", "score", "strand"]
+
+    @property
+    def column_types(self):
+        column_type = super().column_types
+        column_type["name"] = str
+        column_type["score"] = float
+        column_type["strand"] = str
+        return column_type
     
     def get_region_names(self) -> np.array:
         '''
@@ -186,3 +214,32 @@ class BedTable6(BedTable3):
         Return a np.array of region strands.
         '''
         return self._data_df["strand"].values
+
+class BedTable6Plus(BedTable6):
+    def __init__(self, extra_column_names: list, extra_column_dtype=None):
+        self._extra_column_names = extra_column_names
+
+        if not extra_column_dtype:
+            self._extra_column_dtype = [str] * len(extra_column_names)
+        else:
+            self._extra_column_dtype = extra_column_dtype
+
+        super().__init__()
+
+    @property
+    def column_names(self):
+        return ["chrom", "start", "end", "name", "score", "strand"] + self._extra_column_names
+    
+    @property
+    def column_types(self):
+        column_type = super().column_types
+        for extra_col, extra_col_dtype in zip(self._extra_column_names, self._extra_column_dtype):
+            column_type[extra_col] = extra_col_dtype
+        
+        return column_type
+
+    def get_region_extra_column(self, column_name) -> np.array:
+        '''
+        Return a np.array of extra column data for all the regions. Given the column name.
+        '''
+        return self._data_df[column_name].values
