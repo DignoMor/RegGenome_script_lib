@@ -20,11 +20,7 @@ def set_parser(parser):
                         help="The window size [250-250]. The default is to return 501 bp window with tss in middle.", 
                         default="250-250")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog="Gen TSS bed from bed6 files.")
-    set_parser(parser=parser)
-    args = parser.parse_args()
-
+def bed2tssbed(args):
     bed_df = pd.read_csv(args.bed_in, 
                          sep="\t", 
                          names=["chr_name", 
@@ -59,3 +55,11 @@ if __name__ == "__main__":
                   header=False,
                   index=False,
                   )
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="Gen TSS bed from bed6 files.")
+    set_parser(parser=parser)
+    args = parser.parse_args()
+
+    bed2tssbed(args)
