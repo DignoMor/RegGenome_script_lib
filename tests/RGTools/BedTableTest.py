@@ -39,17 +39,15 @@ class TestBedTable3(unittest.TestCase):
         bed_table = BedTable3()
         bed_table.load_from_file(self.__data_file)
 
-        self.assertEqual(bed_table.to_dataframe().values, 
-                         self.__data_df.values,
-                         )
+        self.assertArrayEqual(bed_table.to_dataframe().values, 
+                              self.__data_df.values,
+                              )
         
     def test_load_from_dataframe(self):
         bed_table = BedTable3()
         bed_table.load_from_dataframe(self.__data_df.copy())
 
-        self.assertEqual(bed_table.to_dataframe().values, 
-                         self.__data_df.values,
-                         )
+        self.assertArrayEqual(bed_table.to_dataframe().values, self.__data_df.values)
 
     def test_apply_logical_filter(self):
         logical_array = [True, False, True, False]
@@ -59,9 +57,7 @@ class TestBedTable3(unittest.TestCase):
 
         filtered_bed_table = bed_table.apply_logical_filter(logical_array)
 
-        self.assertEqual(filtered_bed_table.to_dataframe().values, 
-                         self.__data_df.loc[logical_array].values, 
-                         )
+        self.assertArrayEqual(filtered_bed_table.to_dataframe().values, self.__data_df.loc[logical_array].values)
 
     def test_region_subset(self):
         bed_table = self.__init_test_bed_table()
@@ -75,20 +71,21 @@ class TestBedTable3(unittest.TestCase):
                                                    end=rboundary,
                                                    )
 
-        self.assertEqual(subset_bed_table.to_dataframe().values,
-                         self.__data_df.loc[(self.__data_df["chrom"] == chrom) & \
-                                            (self.__data_df["start"] >= lboundary) & \
-                                             self.__data_df["end"] <= rboundary].values,
-                         )
+        self.assertArrayEqual(subset_bed_table.to_dataframe().values,
+                              self.__data_df.loc[(self.__data_df["chrom"] == chrom) & \
+                                                 (self.__data_df["start"] >= lboundary) & \
+                                                 (self.__data_df["end"] <= rboundary)].values,
+                              )
 
     def test_to_dataframe(self):
         bed_table = self.__init_test_bed_table()
 
         exported_dataframe = bed_table.to_dataframe()
 
-        self.assertEqual(exported_dataframe.values,
-                         self.__data_df.values,
-                         )
+        self.assertEqual(type(exported_dataframe), type(pd.DataFrame()))
+        self.assertArrayEqual(exported_dataframe.values,
+                              self.__data_df.values,
+                              )
         
         # Test immutability
         exported_dataframe.loc[0, 0] = "chr3"
@@ -103,51 +100,49 @@ class TestBedTable3(unittest.TestCase):
         new_bed_table = BedTable3()
         new_bed_table.load_from_file(write_path)
 
-        self.assertEqual(new_bed_table.to_dataframe().values,
-                         bed_table.to_dataframe().values,
-                         )
+        self.assertArrayEqual(new_bed_table.to_dataframe().values,
+                              bed_table.to_dataframe().values,
+                              )
 
     def test_get_chrom_names(self):
         bed_table = self.__init_test_bed_table()
 
         chrom_names = bed_table.get_chrom_names()
 
-        self.assertEqual(chrom_names,
-                         self.__data_df["chrom"].values,
-                         )
+        self.assertArrayEqual(chrom_names, self.__data_df["chrom"].values)
 
     def test_get_start_locs(self):
         bed_table = self.__init_test_bed_table()
 
         start_locs = bed_table.get_start_locs()
 
-        self.assertEqual(start_locs,
-                         self.__data_df["start"].values,
-                         )
+        self.assertArrayEqual(start_locs, self.__data_df["start"].values)
 
     def test_get_end_locs(self):
         bed_table = self.__init_test_bed_table()
 
         end_locs = bed_table.get_end_locs()
 
-        self.assertEqual(end_locs, 
-                         self.__data_df["end"].values,
-                         )
+        self.assertArrayEqual(end_locs, self.__data_df["end"].values)
 
     def test_iter_regions(self):
         bed_table = self.__init_test_bed_table()
         start_locs = np.array([r["start"] for r in bed_table.iter_regions()])
 
-        self.assertEqual(start_locs,
-                         bed_table.get_start_locs(),
-                         )
+        self.assertArrayEqual(start_locs, self.__data_df["start"].values)
+
+    def assertArrayEqual(self, arr1, arr2):
+        '''
+        equal assertion to compare two numpy arrays.
+        '''
+        return self.assertTrue((arr1 == arr2).all())
 
     def __mutate_test_helper(self, bedtable: BedTable3) -> bool:
         '''
         Helper function to test the immutability of the class.
         Return True if the passed object is not mutated.
         '''
-        return self.__data_df.values == bedtable.to_dataframe().values
+        return (self.__data_df.values == bedtable.to_dataframe().values).all()
     
     def __init_test_bed_table(self) -> BedTable3:
         bed_table = BedTable3()
