@@ -82,7 +82,7 @@ class BedTable3:
         if not logical_array.dtype == bool:
             raise ValueError("logical_array must be a boolean np.array")
 
-        new_bed_table = BedTable3()
+        new_bed_table = self.__class__()
         new_bed_table.load_from_dataframe(self._data_df.loc[logical_array])
 
         return new_bed_table

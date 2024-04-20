@@ -209,6 +209,16 @@ class TestBedTable6(TestBedTable):
         bed_table.load_from_dataframe(self.data_df.copy())
 
         self.assertArrayEqual(bed_table.to_dataframe().values, self.data_df.values)
+
+    def test_apply_logical_filter(self):
+        logical_array = [True, False, True, False]
+        logical_array = np.array(logical_array)
+
+        bed_table = self.__init_test_bed_table()
+
+        filtered_bed_table = bed_table.apply_logical_filter(logical_array)
+
+        self.assertArrayEqual(filtered_bed_table.to_dataframe().values, self.data_df.loc[logical_array].values)
     
     def test_get_region_names(self):
         bed_table = self.__init_test_bed_table()
