@@ -4,6 +4,9 @@ import argparse
 import re
 
 import pandas as pd
+import numpy as np
+
+from .RGTools.BedTable import BedTable6
 
 def set_parser(parser):
     parser.add_argument("--bed_in", "-I",
@@ -21,19 +24,11 @@ def set_parser(parser):
                         default="250-250")
 
 def bed2tssbed(args):
-    bed_df = pd.read_csv(args.bed_in, 
-                         sep="\t", 
-                         names=["chr_name", 
-                                "start", 
-                                "end", 
-                                "gene_id", 
-                                "score", 
-                                "strand", 
-                                ], 
-                         )
+    input_bed_table = BedTable6()
+    input_bed_table.load_from_file(args.bed_in)
     
     # check strand information
-    for strand in bed_df["strand"].unique():
+    for strand in np.unique(input_bed_table.get_region_strands()):
         if strand not in ("+", "-"):
             raise Exception("Insufficient strand information!")
 
@@ -44,17 +39,20 @@ def bed2tssbed(args):
     l_pad = int(match.group(1))
     r_pad = int(match.group(2))
     
-    tss_list = bed_df["start"].values
-    tss_list[bed_df["strand"]=="-"] = bed_df.loc[bed_df["strand"]=="-", "end"] - 1
+    tss_list = input_bed_table.get_start_locs()
+    tss_list[input_bed_table.get_region_strands()=="-"] = input_bed_table.apply_logical_filter(input_bed_table.get_region_strands()=="-").get_end_locs() - 1
 
-    bed_df["start"] = [t - l_pad for t in tss_list] # bed is 0-based
-    bed_df["end"] = [t + r_pad + 1 for t in tss_list]
+    output_bed_df = pd.DataFrame(columns=["chrom", "start", "end", "name", "score", "strand"])
+    output_bed_df["chrom"] = input_bed_table.get_chrom_names()
+    output_bed_df["start"] = [t - l_pad for t in tss_list] # bed is 0-based
+    output_bed_df["end"] = [t + r_pad + 1 for t in tss_list]
+    output_bed_df["name"] = input_bed_table.get_region_names()
+    output_bed_df["score"] = input_bed_table.get_region_scores()  
+    output_bed_df["strand"] = input_bed_table.get_region_strands()
 
-    bed_df.to_csv(args.bed_out,
-                  sep="\t",
-                  header=False,
-                  index=False,
-                  )
+    output_bed_table = BedTable6()
+    output_bed_table.load_from_dataframe(output_bed_df)
+    output_bed_table.write(args.bed_out)
 
 
 if __name__ == "__main__":
