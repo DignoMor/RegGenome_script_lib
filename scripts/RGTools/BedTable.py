@@ -56,12 +56,21 @@ class BedTable3:
         if not self._is_sorted():
             self._sort()
 
-    def load_from_dataframe(self, df: pd.DataFrame) -> None:
+    def load_from_dataframe(self, df: pd.DataFrame, 
+                            column_map=None) -> None:
         '''
         Load a pd.DataFrame.
+
+        Keyword arguments:
+        df -- a pd.DataFrame that contains the data for a bed table
+        column_map -- a dictionary that maps the column names in the 
+                      bed table to the column names in the pd.DataFrame         
         '''
+        if not column_map:
+            column_map = {col: col for col in self.column_names}
+
         try:
-            self._data_df = pd.DataFrame(df.values, 
+            self._data_df = pd.DataFrame(df[[column_map[col] for col in self.column_names]].values, 
                                          columns=self.column_names, 
                                          )
         except ValueError as e:

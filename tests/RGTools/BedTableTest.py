@@ -210,6 +210,18 @@ class TestBedTable6(TestBedTable):
 
         self.assertArrayEqual(bed_table.to_dataframe().values, self.data_df.values)
 
+        # Another test case with irregular column names
+        irregular_data_df = self.data_df.copy()
+        column_map = {col: "col{}".format(i) for i, col in enumerate(irregular_data_df.columns)}
+        irregular_data_df.rename(columns=column_map, inplace=True)
+
+        bed_table = BedTable6()
+        bed_table.load_from_dataframe(irregular_data_df, 
+                                      column_map=column_map,
+                                      )
+        
+        self.assertArrayEqual(bed_table.to_dataframe().values, self.data_df.values)
+
     def test_apply_logical_filter(self):
         logical_array = [True, False, True, False]
         logical_array = np.array(logical_array)
