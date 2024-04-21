@@ -252,6 +252,26 @@ class TestBedTable6(TestBedTable):
         region_strands = bed_table.get_region_strands()
 
         self.assertArrayEqual(region_strands, self.data_df["strand"].values)
+    
+    def test_region_subset(self):
+        bed_table = self.__init_test_bed_table()
+
+        chrom = "chr2"
+        lboundary = 2
+        rboundary = 7
+
+        subset_bed_table = bed_table.region_subset(chrom=chrom,
+                                                   start=lboundary, 
+                                                   end=rboundary,
+                                                   )
+        
+        subset_df = self.data_df.loc[(self.data_df["chrom"] == chrom) & \
+                                     (self.data_df["start"] >= lboundary) & \
+                                     (self.data_df["end"] <= rboundary)].copy()
+
+        self.assertArrayEqual(subset_bed_table.to_dataframe().values,
+                              subset_df.values, 
+                              )
 
     def __init_test_bed_table(self) -> BedTable6:
         bed_table = BedTable6()

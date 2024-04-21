@@ -107,7 +107,7 @@ class BedTable3:
         subset_data_df = subset_data_df.loc[subset_data_df["start"] >= start]
         subset_data_df = subset_data_df.loc[subset_data_df["end"] <= end]
 
-        new_bed_table = BedTable3()
+        new_bed_table = self.__class__()
         new_bed_table.load_from_dataframe(subset_data_df)
 
         return new_bed_table
