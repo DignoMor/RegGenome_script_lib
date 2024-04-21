@@ -102,6 +102,7 @@ class BedTable3:
         Only return regions that are fully contained in the given region.
         Return a new BedTable3 instance.
         '''
+        #TODO: Add only subsetting by chrome option
         subset_data_df = self._data_df.loc[self._data_df["chrom"] == chrom]
         subset_data_df = subset_data_df.loc[subset_data_df["start"] >= start]
         subset_data_df = subset_data_df.loc[subset_data_df["end"] <= end]
