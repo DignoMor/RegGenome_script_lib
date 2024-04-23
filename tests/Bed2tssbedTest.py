@@ -16,18 +16,18 @@ class Bed2tssbedTest(unittest.TestCase):
         if not os.path.exists(self.__data_dir):
             os.makedirs(self.__data_dir)
 
-        self.__test_data = pd.DataFrame({"chr_name": ["chr1", "chr2", "chr3"],
+        self.__test_data = pd.DataFrame({"chrom": ["chr1", "chr2", "chr3"],
                                          "start": [100, 200, 300],
                                          "end": [200, 300, 400],
-                                         "gene_id": ["gene1", "gene2", "gene3"],
+                                         "name": ["gene1", "gene2", "gene3"],
                                          "score": [1, 2, 3],
                                          "strand": ["+", "-", "+"],
                                          })
         
-        self.__test_ans = pd.DataFrame({"chr_name": ["chr1", "chr2", "chr3"],
+        self.__test_ans = pd.DataFrame({"chrom": ["chr1", "chr2", "chr3"],
                                         "start": [100, 299, 300],
                                         "end": [101, 300, 301],
-                                        "gene_id": ["gene1", "gene2", "gene3"],
+                                        "name": ["gene1", "gene2", "gene3"],
                                         "score": [1, 2, 3],
                                         "strand": ["+", "-", "+"],
                                         })
@@ -63,3 +63,6 @@ class Bed2tssbedTest(unittest.TestCase):
         self.__out_bed_table.load_from_file(self.__bed_out)
 
         self.assertTrue((self.__out_bed_table.to_dataframe().values == self.__ans_bed_table.to_dataframe().values).all())
+    
+if __name__ == "__main__":
+    unittest.main()
