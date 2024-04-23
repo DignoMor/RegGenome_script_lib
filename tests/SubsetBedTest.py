@@ -3,10 +3,12 @@
 import argparse
 import unittest
 import shutil
+import sys
 import os
 
 import pandas as pd
 
+sys.path.append("scripts")
 from scripts.RGTools.BedTable import BedTable3, BedTable6
 from scripts.subset_bed import main
 
@@ -84,4 +86,5 @@ class SubsetBedTest(unittest.TestCase):
         self.assertTrue((arr1 == arr2).all())
 
 if __name__ == "__main__":
+    
     unittest.main()

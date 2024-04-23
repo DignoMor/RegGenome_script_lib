@@ -2,10 +2,12 @@
 import argparse
 import unittest
 import shutil
+import sys
 import os
 
 import pandas as pd
 
+sys.path.append("scripts")
 from scripts.bed2tssbed import bed2tssbed
 from scripts.RGTools.BedTable import BedTable3, BedTable6
 
