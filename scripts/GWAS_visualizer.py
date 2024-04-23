@@ -10,6 +10,16 @@ from plotly.subplots import make_subplots
 
 from RGTools.BedTable import BedTable3, BedTable6
 
+def init_fig(num_annotation_tracks: int) -> go.Figure:
+    fig = make_subplots(rows=num_annotation_tracks+1, 
+                        cols=1, 
+                        shared_xaxes=True, 
+                        vertical_spacing=0.01, 
+                        row_heights=[1] + [0.1]*num_annotation_tracks,
+                        )
+
+    return fig
+
 def make_gwas_scatter(gwas_summary_bed_table: BedTable6, 
                     plot_chr: str, 
                     plot_start_loc: int, 
@@ -32,6 +42,21 @@ def make_gwas_scatter(gwas_summary_bed_table: BedTable6,
                       name="GWAS summary", 
                       )
 
+def add_annotation_track(fig: go.Figure,
+                         annotation_bed_table: BedTable3, 
+                         row: int, 
+                         col: int, 
+                         ) -> None:
+    for region in annotation_bed_table.iter_regions():
+        fig.add_trace(go.Scatter(x=[region["start"], region["end"]],
+                                 y=[0, 0], 
+                                 mode="lines",
+                                 line=dict(width=10, color="blue"),
+                                 ),
+                                 row=row,
+                                 col=col,
+                                 )
+
 def set_parser(parser:argparse.ArgumentParser):
     parser.add_argument("--gwas_summary_bed_path", 
                         help="path to GWAS summary bed file (bed6 format).", 
@@ -39,6 +64,12 @@ def set_parser(parser:argparse.ArgumentParser):
     
     parser.add_argument("--annotation_bed_path", 
                         help="path to annotation bed file (bed3 format).", 
+                        action="append",
+                        )
+
+    parser.add_argument("--annotation_name", 
+                        help="Name of annotations. ", 
+                        action="append",
                         )
     
     parser.add_argument("--plot_chr", 
@@ -56,58 +87,69 @@ def set_parser(parser:argparse.ArgumentParser):
                         )
 
 def main(args):
+    num_annotation_tracks = len(args.annotation_bed_path)
+
+    fig = init_fig(num_annotation_tracks)
+
+    # Plot GWAS manhattan plot
     gwas_summary_bed_table = BedTable6()
     gwas_summary_bed_table.load_from_file(args.gwas_summary_bed_path)
-
-    annotation_bed_table = BedTable3()
-    annotation_bed_table.load_from_file(args.annotation_bed_path)
-
-    fig = make_subplots(rows=2, cols=1, 
-                        row_heights=[0.9, 0.1],
-                        shared_xaxes=True,
-                        )
-
+    
     gwas_scatter = make_gwas_scatter(gwas_summary_bed_table, args.plot_chr, args.plot_start_loc, args.plot_end_loc)
 
     fig.add_trace(gwas_scatter, 
-                row=1, 
-                col=1, 
-                )
+                  row=1, 
+                  col=1, 
+                  )
 
+    # Plot annotation tracks
+    for anno_ind, annotation_bed_path in enumerate(args.annotation_bed_path):
+        annotation_bed_table = BedTable3()
+        annotation_bed_table.load_from_file(annotation_bed_path)
+
+        annotation_bed_table_plot_subset = annotation_bed_table.region_subset(args.plot_chr, args.plot_start_loc, args.plot_end_loc)
+
+        add_annotation_track(fig, 
+                             annotation_bed_table_plot_subset, 
+                             row=anno_ind+2, 
+                             col=1, 
+                             )
+
+    # update layout for Manhattan plot
     fig.update_layout(xaxis=dict(range=[args.plot_start_loc, args.plot_end_loc]))
 
-    annotation_bed_table_plot_subset = annotation_bed_table.region_subset(args.plot_chr, args.plot_start_loc, args.plot_end_loc)
-
-    for region in annotation_bed_table_plot_subset.iter_regions():
-        fig.add_trace(go.Scatter(x=[region["start"], region["end"]],
-                                y=[1,1], 
-                                mode="lines",
-                                line=dict(width=10, color="red"),
-                                ),
-                                row=2,
-                                col=1,
-                                )
-
+    # update global layout for the plot
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',  # Transparent background
         showlegend=False,  # No legend
-        xaxis1=dict(
-            showline=False,  # Remove axis line
-            showgrid=False,  # Remove grid
-            zeroline=False,  # Remove zero line
-            ticks='',  # Remove ticks
-            showticklabels=False  # Remove tick labels
-        ),
-        yaxis2=dict(
-            showline=False,
-            showgrid=False,
-            zeroline=False,
-            ticks='',
-            showticklabels=False, 
-            range=[0, 2],
-        ), 
+        title_text='GWAS Visualization',  # Title
+        title_x=0.5,  # Center the title
     )
-    
+
+    # update layout for annotation tracks
+    for annot_ind, annot_name in enumerate(args.annotation_names):
+        fig.add_annotation(
+            text=annot_name, 
+            x=args.plot_start_loc,  # Position at the very beginning of the x-axis
+            y=0,  # Centered vertically
+            xref='paper',  # Use 'paper' to position relative to the entire figure
+            yref='paper',
+            showarrow=False,  # Do not show an arrow pointing to the text
+            align='left',
+            xanchor='right',  # Anchor text at the right to keep it outside the plot area
+            yanchor='middle', 
+            borderpad=10, 
+            row=annot_ind+2, 
+            col=1, 
+        )
+        fig.update_layout({
+            "yaxis{:d}".format(annot_ind+2):dict(
+                ticks='',
+                showticklabels=False, 
+                range=[-1, 1],
+            ), 
+        })
+
     fig.show()
 
 if __name__ == "__main__":
