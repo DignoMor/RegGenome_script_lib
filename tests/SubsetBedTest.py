@@ -15,7 +15,7 @@ from scripts.subset_bed import main
 class SubsetBedTest(unittest.TestCase):
     def setUp(self) -> None:
         self.__data_dir = "SubsetBedTest_temp_data"
-        self.__sample_data_dir = "tests/sample_data"
+        self.__sample_data_dir = "sample_data"
         self.__sample_gwas_bed6 = os.path.join(self.__sample_data_dir, "sample.gwas_summary.bed6")
         self.__sample_annot_bed3 = os.path.join(self.__sample_data_dir, "sample.annot.bed3")
 
