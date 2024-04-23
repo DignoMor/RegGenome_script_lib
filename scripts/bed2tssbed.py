@@ -6,7 +6,7 @@ import re
 import pandas as pd
 import numpy as np
 
-from .RGTools.BedTable import BedTable6
+from RGTools.BedTable import BedTable6
 
 def set_parser(parser):
     parser.add_argument("--bed_in", "-I",
