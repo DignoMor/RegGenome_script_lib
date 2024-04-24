@@ -6,6 +6,8 @@ import sys
 
 import pandas as pd
 
+from RGTools.BedTable import BedTable6
+
 def set_parser(parser):
     parser.add_argument("--gtf_path", "-g", 
                         help="path to gtf file.", 
@@ -113,12 +115,19 @@ def main(args):
         bed_out = sys.stdout
     else:
         bed_out = args.bed_out
+    
+    output_bed_table = BedTable6()
+    output_bed_table.load_from_dataframe(bed_df, 
+                                         column_map={"chrom": "chr_name",
+                                                     "name": "gene_id",
+                                                     "score": "score",
+                                                     "strand": "strand",
+                                                     "start": "start",
+                                                     "end": "end",
+                                                     }, 
+                                         )
 
-    bed_df.to_csv(bed_out,
-                  sep="\t",
-                  header=False,
-                  index=False,
-                  )
+    output_bed_table.write(bed_out)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="Search GTF.")
