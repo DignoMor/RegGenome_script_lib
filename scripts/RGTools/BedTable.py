@@ -45,9 +45,10 @@ class BedTable3:
         '''
         try:
             self._data_df = pd.read_csv(ipath, 
-                                         sep="\t", 
-                                         names=self.column_names,
-                                         )
+                                        sep="\t", 
+                                        names=self.column_names,
+                                        na_values='.', 
+                                        )
         except ValueError as e:
             raise BedTableLoadException(f"Error loading bed file: number of columns does not match.")
         
@@ -73,6 +74,8 @@ class BedTable3:
             self._data_df = pd.DataFrame(df[[column_map[col] for col in self.column_names]].values, 
                                          columns=self.column_names, 
                                          )
+            self._data_df.replace('.', np.nan, inplace=True)
+
         except ValueError as e:
             raise BedTableLoadException(f"Error loading pd.DataFrame: number of columns does not match.")
         
@@ -122,11 +125,16 @@ class BedTable3:
         '''
         Write the table to a bed file.
         '''
+        self._data_df.fillna('.', inplace=True)
+
         self._data_df.to_csv(opath, 
                               sep="\t", 
                               header=False, 
                               index=False, 
                               )
+
+        self._data_df.replace('.', np.nan, inplace=True)
+        self.__force_dtype()
 
     def get_chrom_names(self) -> np.array:
         '''
