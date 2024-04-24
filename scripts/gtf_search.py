@@ -55,13 +55,7 @@ def key_value_pair_str_parser(key_value_pair_str):
 
     return key, value
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog="Search GTF.")
-
-    set_parser(parser)
-
-    args = parser.parse_args()
-
+def main(args):
     # put searching key-value pairs to dicts
     general_key_value_dict = dict()
     additional_key_value_dict = dict()
@@ -126,6 +120,12 @@ if __name__ == '__main__':
                   index=False,
                   )
 
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(prog="Search GTF.")
 
+    set_parser(parser)
 
+    args = parser.parse_args()
 
+    main(args)
+    
