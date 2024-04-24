@@ -17,7 +17,7 @@ class SubsetBedTest(unittest.TestCase):
         self.__data_dir = "SubsetBedTest_temp_data"
         self.__sample_data_dir = "sample_data"
         self.__sample_gwas_bed6 = os.path.join(self.__sample_data_dir, "sample.gwas_summary.bed6")
-        self.__sample_annot_bed3 = os.path.join(self.__sample_data_dir, "sample.annot.bed3")
+        self.__sample_annot_bed3 = os.path.join(self.__sample_data_dir, "sample1.annot.bed3")
 
         if not os.path.exists(self.__data_dir):
             os.makedirs(self.__data_dir)
