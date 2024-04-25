@@ -125,16 +125,16 @@ class BedTable3:
         '''
         Write the table to a bed file.
         '''
-        self._data_df.fillna('.', inplace=True)
+        df2write = self._data_df.copy()
+        df2write.astype('O')
+        for col in df2write.columns:
+            df2write[col] = df2write[col].astype(str)
 
         self._data_df.to_csv(opath, 
                               sep="\t", 
                               header=False, 
                               index=False, 
                               )
-
-        self._data_df.replace('.', np.nan, inplace=True)
-        self.__force_dtype()
 
     def get_chrom_names(self) -> np.array:
         '''
