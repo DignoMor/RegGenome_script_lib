@@ -41,13 +41,13 @@ def set_parser(parser):
     
     parser.add_argument("--extra_col_general_feature", 
                         help="Extra general feature column to output. "
-                             "(eg. gene_name)", 
+                             "(eg. feature_type)", 
                         action="append", 
                         default=[],
                         )
 
-    parser.add_argument("--extra_col_general_feature", 
-                        help="Extra general feature column to output. "
+    parser.add_argument("--extra_col_additional_feature", 
+                        help="Extra additional feature column to output. "
                              "(eg. gene_name)", 
                         action="append", 
                         default=[],
