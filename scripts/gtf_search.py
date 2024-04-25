@@ -6,7 +6,7 @@ import sys
 
 import pandas as pd
 
-from RGTools.BedTable import BedTable6
+from RGTools.BedTable import BedTable6, BedTable6Plus
 
 def set_parser(parser):
     parser.add_argument("--gtf_path", "-g", 
@@ -37,6 +37,20 @@ def set_parser(parser):
                         help="Specify additional feature to search. "
                              "(eg. gene_type==protein_coding)", 
                         action="append", 
+                        )
+    
+    parser.add_argument("--extra_col_general_feature", 
+                        help="Extra general feature column to output. "
+                             "(eg. gene_name)", 
+                        action="append", 
+                        default=[],
+                        )
+
+    parser.add_argument("--extra_col_general_feature", 
+                        help="Extra general feature column to output. "
+                             "(eg. gene_name)", 
+                        action="append", 
+                        default=[],
                         )
 
 def key_value_pair_str_parser(key_value_pair_str):
@@ -79,12 +93,16 @@ def main(args):
     for search_key, search_value in additional_key_value_dict.items():
         gtf_file_handle = gtf_file_handle.filter_by_add_record(search_key, search_value)
 
+    # search the gtf_file
     start_loc_list = []
     end_loc_list = []
     gene_id_list = []
     chr_name_list = []
     score_list = []
     strand_list = []
+
+    extra_col_general_feature_list_dict = {f:[] for f in args.extra_col_general_feature}
+    extra_col_add_feature_list_dict = {f:[] for f in args.extra_col_additional_feature}
 
     for record in gtf_file_handle:
         start_loc = record.search_general_info("start_loc")
@@ -102,6 +120,12 @@ def main(args):
         score_list.append(score)
         strand_list.append(strand)
 
+        for f in extra_col_general_feature_list_dict.keys():
+            extra_col_general_feature_list_dict[f].append(record.search_general_info(f))
+
+        for f in extra_col_add_feature_list_dict.keys():
+            extra_col_add_feature_list_dict[f].append(record.search_add_info(f))
+
     bed_df = pd.DataFrame({
         "chr_name": chr_name_list,
         "start": [t - 1 for t in start_loc_list], # bed is 0-based
@@ -111,20 +135,38 @@ def main(args):
         "strand": strand_list,
     })
 
+    for f, v in extra_col_general_feature_list_dict.items():
+        bed_df[f] = v
+    
+    for f, v in extra_col_add_feature_list_dict.items():
+        bed_df[f] = v
+
     if args.bed_out == "stdout":
         bed_out = sys.stdout
     else:
         bed_out = args.bed_out
     
-    output_bed_table = BedTable6()
+    all_extra_col_names = args.extra_col_general_feature + args.extra_col_additional_feature
+    if len(all_extra_col_names) == 0:
+        output_bed_table = BedTable6()
+    else:
+        output_bed_table = BedTable6Plus(extra_column_names=all_extra_col_names, 
+                                         extra_column_dtype=["str"] * len(all_extra_col_names),
+                                         )
+    
+    column_map = {"chrom": "chr_name",
+                  "name": "gene_id",
+                  "score": "score",
+                  "strand": "strand",
+                  "start": "start",
+                  "end": "end",
+                  }
+    
+    for f in args.extra_col_general_feature + args.extra_col_additional_feature:
+        column_map[f] = f
+
     output_bed_table.load_from_dataframe(bed_df, 
-                                         column_map={"chrom": "chr_name",
-                                                     "name": "gene_id",
-                                                     "score": "score",
-                                                     "strand": "strand",
-                                                     "start": "start",
-                                                     "end": "end",
-                                                     }, 
+                                         column_map=column_map, 
                                          )
 
     output_bed_table.write(bed_out)
