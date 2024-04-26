@@ -222,6 +222,26 @@ class TestBedTable6(TestBedTable):
         
         self.assertArrayEqual(bed_table.to_dataframe().values, self.data_df.values)
 
+        # Test case with None and "." values
+        none_data_df = self.data_df.copy().astype("O")
+        none_data_df.loc[0, "name"] = None
+        none_data_df.loc[1, "score"] = "."
+        none_data_df.loc[2, "strand"] = None
+
+        bed_table = BedTable6()
+        bed_table.load_from_dataframe(none_data_df)
+        bed_table.write(os.path.join(self.data_dir, "bed_table_load_none_test.bed"))
+
+        output_df = pd.read_csv(os.path.join(self.data_dir, "bed_table_load_none_test.bed"),
+                                sep="\t",
+                                header=None,
+                                )
+
+        self.assertEqual(output_df.loc[0, 3], ".")
+        self.assertEqual(output_df.loc[1, 4], ".")
+        self.assertEqual(output_df.loc[2, 5], ".")
+
+
     def test_apply_logical_filter(self):
         logical_array = [True, False, True, False]
         logical_array = np.array(logical_array)

@@ -74,7 +74,6 @@ class BedTable3:
             self._data_df = pd.DataFrame(df[[column_map[col] for col in self.column_names]].values, 
                                          columns=self.column_names, 
                                          )
-            self._data_df.replace('.', np.nan, inplace=True)
 
         except ValueError as e:
             raise BedTableLoadException(f"Error loading pd.DataFrame: number of columns does not match.")
@@ -126,15 +125,19 @@ class BedTable3:
         Write the table to a bed file.
         '''
         df2write = self._data_df.copy()
-        df2write.astype('O')
+
         for col in df2write.columns:
             df2write[col] = df2write[col].astype(str)
 
-        self._data_df.to_csv(opath, 
-                              sep="\t", 
-                              header=False, 
-                              index=False, 
-                              )
+        df2write.fillna(".", inplace=True)
+        df2write.replace("nan", ".", inplace=True)
+        df2write.replace("None", ".", inplace=True)
+
+        df2write.to_csv(opath, 
+                        sep="\t", 
+                        header=False, 
+                        index=False, 
+                        )
 
     def get_chrom_names(self) -> np.array:
         '''
@@ -193,8 +196,12 @@ class BedTable3:
         '''
         Force the column types.
         '''
+        self._data_df.replace('.', None, inplace=True)
+
         for field, field_dtype in self.column_types.items():
             self._data_df[field] = self._data_df[field].astype(field_dtype)
+
+        self._data_df.replace("None", np.nan, inplace=True)
 
     def __len__(self) -> int:
         return self._data_df.shape[0]
