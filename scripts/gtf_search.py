@@ -31,12 +31,14 @@ def set_parser(parser):
                              "phase"
                              ")", 
                         action="append", 
+                        default=[],
                         )
 
     parser.add_argument("--additional_feature_key_value_pair", 
                         help="Specify additional feature to search. "
                              "(eg. gene_type==protein_coding)", 
                         action="append", 
+                        default=[],
                         )
     
     parser.add_argument("--extra_col_general_feature", 
