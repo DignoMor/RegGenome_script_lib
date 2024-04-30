@@ -130,8 +130,8 @@ def main(args):
 
     bed_df = pd.DataFrame({
         "chr_name": chr_name_list,
-        "start": [t - 1 for t in start_loc_list], # bed is 0-based
-        "end": [t - 1 for t in end_loc_list],
+        "start": [t - 1 for t in start_loc_list], # GENCODE is 1-based but bed is 0-based
+        "end": [t - 1 for t in end_loc_list], # GENCODE is closed but bed is open at the end
         "gene_id": gene_id_list,
         "score": score_list,
         "strand": strand_list,
