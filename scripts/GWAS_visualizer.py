@@ -8,7 +8,7 @@ import pandas as pd
 
 from plotly.subplots import make_subplots
 
-from RGTools.BedTable import BedTable3, BedTable6
+from RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
 
 def init_fig(num_annotation_tracks: int) -> go.Figure:
     fig = make_subplots(rows=num_annotation_tracks+1, 
@@ -43,15 +43,48 @@ def make_gwas_scatter(gwas_summary_bed_table: BedTable6,
                       )
 
 def add_annotation_track(fig: go.Figure,
-                         annotation_bed_table: BedTable3, 
+                         annotation_bed_path: str, 
+                         annotation_bed_type: str,
+                         region_chr: str,
+                         region_start: int,
+                         region_end: int,
                          row: int, 
                          col: int, 
                          ) -> None:
-    for region in annotation_bed_table.iter_regions():
+
+    match annotation_bed_type:
+        case "bed3":
+            annotation_bed_table = BedTable3()
+            annotation_bed_table.load_from_file(annotation_bed_path)
+        case "bed6":
+            annotation_bed_table = BedTable6()
+            annotation_bed_table.load_from_file(annotation_bed_path)
+        case "bed6Plus_with_gene_name":
+            annotation_bed_table = BedTable6Plus(extra_column_names=["gene_name"], 
+                                                 extra_column_dtype=["str"],)
+            annotation_bed_table.load_from_file(annotation_bed_path)
+        case _:
+            raise ValueError(f"Unrecognized annotation file type: {annotation_bed_type}")
+
+    annotation_bed_table_plot_subset = annotation_bed_table.region_subset(region_chr, 
+                                                                          region_start, 
+                                                                          region_end, 
+                                                                          )
+
+    for region in annotation_bed_table_plot_subset.iter_regions():
+        match annotation_bed_type:
+            case "bed3":
+                region_name = ""
+            case "bed6":
+                region_name = region["name"]
+            case "bed6Plus_with_gene_name":
+                region_name = region["gene_name"]
+
         fig.add_trace(go.Scatter(x=[region["start"], region["end"]],
                                  y=[0, 0], 
                                  mode="lines",
                                  line=dict(width=10, color="blue"),
+                                 name=region_name,
                                  ),
                                  row=row,
                                  col=col,
@@ -72,6 +105,12 @@ def set_parser(parser:argparse.ArgumentParser):
                         action="append",
                         )
     
+    parser.add_argument("--annotation_file_type",
+                        help="Type of annotation file. ", 
+                        action="append",
+                        choices=["bed3", "bed6", "bed6Plus_with_gene_name"],
+                        )
+
     parser.add_argument("--plot_chr", 
                         help="Chromosome to plot.", 
                         )
@@ -103,14 +142,16 @@ def main(args):
                   )
 
     # Plot annotation tracks
-    for anno_ind, annotation_bed_path in enumerate(args.annotation_bed_path):
-        annotation_bed_table = BedTable3()
-        annotation_bed_table.load_from_file(annotation_bed_path)
-
-        annotation_bed_table_plot_subset = annotation_bed_table.region_subset(args.plot_chr, args.plot_start_loc, args.plot_end_loc)
+    for anno_ind in range(len(args.annotation_bed_path)):
+        annotation_bed_path = args.annotation_bed_path[anno_ind]
+        annotation_bed_type = args.annotation_file_type[anno_ind]
 
         add_annotation_track(fig, 
-                             annotation_bed_table_plot_subset, 
+                             annotation_bed_path, 
+                             annotation_bed_type,
+                             region_chr=args.plot_chr,
+                             region_start=args.plot_start_loc,
+                             region_end=args.plot_end_loc,
                              row=anno_ind+2, 
                              col=1, 
                              )
