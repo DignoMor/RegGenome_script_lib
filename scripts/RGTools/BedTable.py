@@ -23,8 +23,13 @@ class BedTableIterator:
             return region
 
 class BedTable3:
-    def __init__(self):
+    def __init__(self, 
+                 extra_column_names: list = None,
+                 extra_column_dtype: list = None,
+                 ):
         super().__init__()
+        self.__extra_column_names = extra_column_names
+        self.__extra_column_dtype = extra_column_dtype
         self._data_df = pd.DataFrame(columns=self.column_names)
 
     # public methods
@@ -38,6 +43,14 @@ class BedTable3:
         A dictionary of column types.
         '''
         return {"chrom": str, "start": int, "end": int}
+    
+    @property
+    def extra_column_names(self):
+        return []
+    
+    @property
+    def extra_column_dtype(self):
+        return []
 
     def load_from_file(self, ipath: str) -> None:
         '''
@@ -109,7 +122,9 @@ class BedTable3:
         subset_data_df = subset_data_df.loc[subset_data_df["start"] >= start]
         subset_data_df = subset_data_df.loc[subset_data_df["end"] <= end]
 
-        new_bed_table = self.__class__()
+        new_bed_table = self.__class__(extra_column_names=self.extra_column_names,
+                                       extra_column_dtype=self.extra_column_dtype,
+                                       )
         new_bed_table.load_from_dataframe(subset_data_df)
 
         return new_bed_table
@@ -207,7 +222,10 @@ class BedTable3:
         return self._data_df.shape[0]
 
 class BedTable6(BedTable3):
-    def __init__(self):
+    def __init__(self, 
+                 extra_column_names: list = None,
+                 extra_column_dtype: list = None,
+                 ):
         super().__init__()
 
     @property
@@ -241,7 +259,10 @@ class BedTable6(BedTable3):
         return self._data_df["strand"].values
 
 class BedTable6Plus(BedTable6):
-    def __init__(self, extra_column_names: list, extra_column_dtype=None):
+    def __init__(self, 
+                 extra_column_names: list,
+                 extra_column_dtype: list = None,
+                 ):
         self._extra_column_names = extra_column_names
 
         if not extra_column_dtype:
@@ -262,6 +283,14 @@ class BedTable6Plus(BedTable6):
             column_type[extra_col] = extra_col_dtype
         
         return column_type
+    
+    @property
+    def extra_column_names(self):
+        return self._extra_column_names
+    
+    @property
+    def extra_column_dtype(self):
+        return self._extra_column_dtype
 
     def get_region_extra_column(self, column_name) -> np.array:
         '''
