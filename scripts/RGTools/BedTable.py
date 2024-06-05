@@ -297,3 +297,116 @@ class BedTable6Plus(BedTable6):
         Return a np.array of extra column data for all the regions. Given the column name.
         '''
         return self._data_df[column_name].values
+
+class BedTablePairEnd(BedTable3):
+    def __init__(self, 
+                 extra_column_names: list = None,
+                 extra_column_dtype: list = None,
+                 ):
+        super().__init__()
+        if not extra_column_names:
+            self._extra_column_names = []
+        else:
+            self._extra_column_names = extra_column_names
+
+        if not extra_column_dtype:
+            self._extra_column_dtype = [str] * len(extra_column_names)
+        else:
+            self._extra_column_dtype = extra_column_dtype
+
+    @property
+    def extra_column_names(self):
+        return self._extra_column_names
+    
+    @property
+    def extra_column_dtype(self):
+        return self._extra_column_dtype
+
+    @property
+    def column_names(self):
+        return ["chrom", "start", "end", "chrom2", "start2", "end2", "name", "score", "strand", "strand2"] + self.extra_column_names
+    
+    @property
+    def column_types(self):
+        column_type = super().column_types
+        column_type["chrom2"] = str
+        column_type["start2"] = int
+        column_type["end2"] = int
+        column_type["name"] = str
+        column_type["score"] = float
+        column_type["strand"] = str
+        column_type["strand2"] = str
+
+        for extra_col, extra_col_dtype in zip(self.extra_column_names, self.extra_column_dtype):
+            column_type[extra_col] = extra_col_dtype
+
+        return column_type
+    
+    def get_other_region_chroms(self) -> np.array:
+        '''
+        Return a np.array of chroms of the other region.
+        '''
+        return self._data_df["chrom2"].values
+    
+    def get_other_region_starts(self) -> np.array:
+        '''
+        Return a np.array of starts of the other region.
+        '''
+        return self._data_df["start2"].values
+    
+    def get_other_region_ends(self) -> np.array:
+        '''
+        Return a np.array of ends of the other region.
+        '''
+        return self._data_df["end2"].values
+    
+    def get_pair_names(self) -> np.array:
+        '''
+        Return a np.array of region names.
+        '''
+        return self._data_df["name"].values
+    
+    def get_pair_scores(self) -> np.array:
+        '''
+        Return a np.array of pair end region scores.
+        '''
+        return self._data_df["score"].values
+    
+    def get_region_strands(self) -> np.array:
+        '''
+        Return a np.array of region strands.
+        '''
+        return self._data_df["strand"].values
+    
+    def get_other_region_strands(self) -> np.array:
+        '''
+        Return a np.array of strands of the other region in the pair.
+        '''
+        return self._data_df["strand2"].values
+
+    def get_extra_column(self, column_name) -> np.array:
+        '''
+        Return a np.array of extra column data for all the regions. Given the column name.
+        '''
+        return self._data_df[column_name].values
+    
+    def search_pair_extra_column(self, chr1, start1, end1, 
+                                 chr2, start2, end2, 
+                                 colum_name, 
+                                 overlapping_base=1, 
+                                 ):
+        '''
+        Search for a pair end region and return the column data as indicated by the column name.
+        Return None if no data is found for the given pair regions.
+
+        Keyword arguments:
+        chr1 -- chromosome of the first region
+        start1 -- start of the first region
+        end1 -- end of the first region
+        chr2 -- chromosome of the second region
+        start2 -- start of the second region
+        end2 -- end of the second region
+        column_name -- the column name of the data to return
+        overlapping_base -- the number of overlapping bases required for a match
+        '''
+        pass
