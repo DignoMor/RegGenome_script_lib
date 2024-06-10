@@ -23,13 +23,7 @@ class BedTableIterator:
             return region
 
 class BedTable3:
-    def __init__(self, 
-                 extra_column_names: list = None,
-                 extra_column_dtype: list = None,
-                 ):
-        super().__init__()
-        self.__extra_column_names = extra_column_names
-        self.__extra_column_dtype = extra_column_dtype
+    def __init__(self):
         self._data_df = pd.DataFrame(columns=self.column_names)
 
     # public methods
@@ -111,20 +105,27 @@ class BedTable3:
 
         return new_bed_table
         
-    def region_subset(self, chrom: str, start: int, end: int) -> 'BedTable3':
+    def _get_subset_data_df(self, chrom: str, start: int, end: int) -> pd.DataFrame:
         '''
-        Subset the table to the given region.
-        Only return regions that are fully contained in the given region.
-        Return a new BedTable3 instance.
+        Subset the data df to the given region.
+        Return a new pd.DataFrame.
         '''
         #TODO: Add only subsetting by chrome option
         subset_data_df = self._data_df.loc[self._data_df["chrom"] == chrom]
         subset_data_df = subset_data_df.loc[subset_data_df["start"] >= start]
         subset_data_df = subset_data_df.loc[subset_data_df["end"] <= end]
 
-        new_bed_table = self.__class__(extra_column_names=self.extra_column_names,
-                                       extra_column_dtype=self.extra_column_dtype,
-                                       )
+        return subset_data_df.copy()
+
+    def region_subset(self, chrom: str, start: int, end: int) -> 'BedTable3':
+        '''
+        Subset the table to the given region.
+        Only return regions that are fully contained in the given region.
+        Return a new BedTable3 instance.
+        '''
+        subset_data_df = self._get_subset_data_df(chrom, start, end)
+
+        new_bed_table = self.__class__()
         new_bed_table.load_from_dataframe(subset_data_df)
 
         return new_bed_table
@@ -222,11 +223,8 @@ class BedTable3:
         return self._data_df.shape[0]
 
 class BedTable6(BedTable3):
-    def __init__(self, 
-                 extra_column_names: list = None,
-                 extra_column_dtype: list = None,
-                 ):
-        super().__init__()
+    def __init__(self):
+        self._data_df = pd.DataFrame(columns=self.column_names)
 
     @property
     def column_names(self):
@@ -257,6 +255,14 @@ class BedTable6(BedTable3):
         Return a np.array of region strands.
         '''
         return self._data_df["strand"].values
+    
+    def region_subset(self, chrom: str, start: int, end: int) -> 'BedTable6':
+        subset_data_df = self._get_subset_data_df(chrom, start, end)
+
+        new_bed_table = self.__class__()
+        new_bed_table.load_from_dataframe(subset_data_df)
+
+        return new_bed_table
 
 class BedTable6Plus(BedTable6):
     def __init__(self, 
@@ -269,17 +275,17 @@ class BedTable6Plus(BedTable6):
             self._extra_column_dtype = [str] * len(extra_column_names)
         else:
             self._extra_column_dtype = extra_column_dtype
-
-        super().__init__()
+        
+        self._data_df = pd.DataFrame(columns=self.column_names)
 
     @property
     def column_names(self):
-        return ["chrom", "start", "end", "name", "score", "strand"] + self._extra_column_names
+        return ["chrom", "start", "end", "name", "score", "strand"] + self.extra_column_names
     
     @property
     def column_types(self):
         column_type = super().column_types
-        for extra_col, extra_col_dtype in zip(self._extra_column_names, self._extra_column_dtype):
+        for extra_col, extra_col_dtype in zip(self.extra_column_names, self.extra_column_dtype):
             column_type[extra_col] = extra_col_dtype
         
         return column_type
@@ -297,13 +303,20 @@ class BedTable6Plus(BedTable6):
         Return a np.array of extra column data for all the regions. Given the column name.
         '''
         return self._data_df[column_name].values
+    
+    def region_subset(self, chrom: str, start: int, end: int) -> 'BedTable6Plus':
+        subset_df = self._get_subset_data_df(chrom, start, end)
+
+        new_bed_table = self.__class__(self.extra_column_names, self.extra_column_dtype)
+        new_bed_table.load_from_dataframe(subset_df)
+
+        return new_bed_table
 
 class BedTablePairEnd(BedTable3):
     def __init__(self, 
                  extra_column_names: list = None,
                  extra_column_dtype: list = None,
                  ):
-        super().__init__()
         if not extra_column_names:
             self._extra_column_names = []
         else:
@@ -313,6 +326,8 @@ class BedTablePairEnd(BedTable3):
             self._extra_column_dtype = [str] * len(extra_column_names)
         else:
             self._extra_column_dtype = extra_column_dtype
+        
+        self._data_df = pd.DataFrame(columns=self.column_names)
 
     @property
     def extra_column_names(self):
