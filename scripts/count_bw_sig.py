@@ -135,12 +135,7 @@ def parse_region_input(region_file, file_type):
 
     return region_df
 
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Extracting Counts from BWs")
-    set_parser(parser=parser)
-    args = parser.parse_args()
-
+def main(args):
     region_df = parse_region_input(args.region_file_path, 
                                    args.region_file_type, 
                                    )
@@ -189,3 +184,10 @@ if __name__ == "__main__":
 
     count_df.to_csv(os.path.join(args.opath, args.job_name + ".count.csv"))
     region_df.to_csv(os.path.join(args.opath, args.job_name + ".region_info.csv"))
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("Extracting Counts from BWs")
+    set_parser(parser=parser)
+    args = parser.parse_args()
+
+    main(args)
