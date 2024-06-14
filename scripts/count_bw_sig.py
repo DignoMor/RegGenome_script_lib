@@ -7,6 +7,14 @@ import pandas as pd
 import pyBigWig
 
 from RGTools.utils import str2bool
+from RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
+
+#TODO: add BedTableTRE support
+REGION_FILE_SUFFIX2CLASS_DICT = {
+    "bed3": BedTable3,
+    "bed6": BedTable6,
+    "bed6plus": BedTable6Plus, 
+}
 
 def set_parser(parser):
     parser.add_argument("--job_name", 
@@ -48,10 +56,10 @@ def set_parser(parser):
                         )
     
     parser.add_argument("--region_file_type.", 
-                        help="type of regional file. [0]"
-                        "(0: TRE-BED file outputed by PINTS; 1: bed3; 2: bed6)", 
+                        help="type of regional file. [bed3]"
+                        "(options: {})".format(", ".join(REGION_FILE_SUFFIX2CLASS_DICT.keys())), 
                         default=0, 
-                        type=int, 
+                        type=str, 
                         dest="region_file_type", 
                         )
 
@@ -74,9 +82,9 @@ def parse_region_input(region_file, file_type):
     Parse the input file and return a dataframe include region info.
     The returned df could have type-specific additional information that can be 
     used in further analysis, but the followings are always included:
-    - "chr"
-    - "start_loc"
-    - "end_loc"
+    - "chrom"
+    - "start"
+    - "end"
     - "name"
     - "score"
     - "strand"
@@ -85,53 +93,21 @@ def parse_region_input(region_file, file_type):
     The index of the region df will be the unique identifier for the region 
     in the output matrix.
     '''
-    if file_type == 0:
-        region_df = pd.read_csv(region_file, 
-                                sep="\t", 
-                                names=["chr", 
-                                       "start_loc", 
-                                       "end_loc", 
-                                       "element_type", 
-                                       "fwd_tss",
-                                       "rev_tss", 
-                                       ], 
-                                )
-        
-        # for compatibility with standard bed6 format
-        region_df["name"] = "." 
-        region_df["score"] = "." 
-        region_df["strand"] = "." 
-
-    elif file_type == 1:
-        region_df = pd.read_csv(region_file, 
-                                sep="\t", 
-                                names=["chr", 
-                                       "start_loc", 
-                                       "end_loc", 
-                                       ], 
-                                )
-
-        # for compatibility with standard bed format
-        region_df["name"] = "." 
-        region_df["score"] = "." 
-        region_df["strand"] = "." 
-        
-    elif file_type == 2:
-        region_df = pd.read_csv(region_file, 
-                                sep="\t", 
-                                names=["chr", 
-                                       "start_loc", 
-                                       "end_loc", 
-                                       "name", 
-                                       "score", 
-                                       "strand", 
-                                       ], 
-                                )
-
-    else:
+    if not file_type in REGION_FILE_SUFFIX2CLASS_DICT.keys():
         raise Exception("Unsupported region file type ({}).".format(file_type))
-        
-    region_df.index = region_df["chr"] + "_" + region_df["start_loc"].transform(str) + "_" + region_df["end_loc"].transform(str)
+    
+    region_bed_table = REGION_FILE_SUFFIX2CLASS_DICT[file_type]()
+    region_bed_table.load_from_file(region_file)
+    
+    if file_type == "bed3":
+        new_region_bed_table = BedTable6()
+        new_region_bed_table.load_from_BedTable3(region_bed_table)
+        region_bed_table = new_region_bed_table
+
+    #TODO: Switch from df to BedTables
+    region_df = region_bed_table.to_dataframe()
+    region_df.fillna(".", inplace=True)
+    region_df.index = region_df["chrom"] + "_" + region_df["start"].transform(str) + "_" + region_df["end"].transform(str)
 
     return region_df
 
@@ -154,14 +130,14 @@ def main(args):
         bw_mn = pyBigWig.open(bw_mn_path)
 
         for region_id, region_info in region_df.iterrows():
-            pl_count = np.nan_to_num(bw_pl.values(region_info["chr"], 
-                                                  region_info["start_loc"], 
-                                                  region_info["end_loc"], 
+            pl_count = np.nan_to_num(bw_pl.values(region_info["chrom"], 
+                                                  region_info["start"], 
+                                                  region_info["end"], 
                                                   ), 
                                      ).sum()
-            mn_count = -np.nan_to_num(bw_mn.values(region_info["chr"], 
-                                                   region_info["start_loc"], 
-                                                   region_info["end_loc"], 
+            mn_count = -np.nan_to_num(bw_mn.values(region_info["chrom"], 
+                                                   region_info["start"], 
+                                                   region_info["end"], 
                                                    ), 
                                       ).sum()
 
