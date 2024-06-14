@@ -131,7 +131,7 @@ def parse_region_input(region_file, file_type):
     else:
         raise Exception("Unsupported region file type ({}).".format(file_type))
         
-    region_df.index = region_df["chr"] + "_" + region_df["start_loc"].agg(str) + "_" + region_df["end_loc"].agg(str)
+    region_df.index = region_df["chr"] + "_" + region_df["start_loc"].transform(str) + "_" + region_df["end_loc"].transform(str)
 
     return region_df
 
