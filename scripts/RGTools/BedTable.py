@@ -6,6 +6,23 @@ import pandas as pd
 
 from .exceptions import BedTableLoadException
 
+# Only pd.Int64Dtype(), np.float64, and "O" are supported in this class
+TYPE2PDDTYPE = {int: pd.Int64Dtype(), 
+                np.int32: pd.Int64Dtype(),
+                np.int64: pd.Int64Dtype(),
+                pd.Int64Dtype(): pd.Int64Dtype(),
+                float: np.float64, 
+                np.float32: np.float64,
+                np.float64: np.float64,
+                str: pd.StringDtype(), 
+                pd.StringDtype(): pd.StringDtype(),
+                }
+
+PDDTYPE2NANVAL = {pd.Int64Dtype(): np.nan,
+                  np.float64: np.nan,
+                  pd.StringDtype(): None,
+                  }
+
 class BedTableIterator:
     def __init__(self, bed_table: 'BedTable3') -> None:
         self.__bed_table = bed_table
@@ -36,7 +53,10 @@ class BedTable3:
         '''
         A dictionary of column types.
         '''
-        return {"chrom": str, "start": int, "end": int}
+        dtype_dict = {"chrom": str, "start": int, "end": int}
+        
+        dtype_dict = self._dtype2pddtype(dtype_dict)
+        return dtype_dict
     
     @property
     def extra_column_names(self):
@@ -59,7 +79,7 @@ class BedTable3:
         except ValueError as e:
             raise BedTableLoadException(f"Error loading bed file: number of columns does not match.")
         
-        self.__force_dtype()
+        self._force_dtype()
 
         if not self._is_sorted():
             self._sort()
@@ -85,7 +105,7 @@ class BedTable3:
         except ValueError as e:
             raise BedTableLoadException(f"Error loading pd.DataFrame: number of columns does not match.")
         
-        self.__force_dtype()
+        self._force_dtype()
 
         if not self._is_sorted():
             self._sort()
@@ -142,12 +162,12 @@ class BedTable3:
         '''
         df2write = self._data_df.copy()
 
-        for col in df2write.columns:
-            df2write[col] = df2write[col].astype(str)
-
-        df2write.fillna(".", inplace=True)
-        df2write.replace("nan", ".", inplace=True)
-        df2write.replace("None", ".", inplace=True)
+        for col, col_dtype in self.column_types.items():
+            if col_dtype == pd.StringDtype():
+                df2write[col] = df2write[col].fillna(".")
+            else:
+                df2write[col] = df2write[col].astype(pd.StringDtype())
+                df2write[col] = df2write[col].fillna(".")
 
         df2write.to_csv(opath, 
                         sep="\t", 
@@ -258,16 +278,24 @@ class BedTable3:
 
         return True
 
-    def __force_dtype(self):
+    def _dtype2pddtype(self, dtype_dict):
+        '''
+        Convert dtype to pd.Dtype.
+        '''
+        for key in dtype_dict.keys():
+            if dtype_dict[key] in TYPE2PDDTYPE.keys():
+                dtype_dict[key] = TYPE2PDDTYPE[dtype_dict[key]]
+            else:
+                raise ValueError(f"Unsupported dtype: {dtype_dict[key]}")
+        return dtype_dict
+
+    def _force_dtype(self):
         '''
         Force the column types.
         '''
-        self._data_df.replace('.', None, inplace=True)
-
         for field, field_dtype in self.column_types.items():
+            self._data_df[field] = self._data_df[field].replace(".", PDDTYPE2NANVAL[field_dtype])
             self._data_df[field] = self._data_df[field].astype(field_dtype)
-
-        self._data_df.replace("None", np.nan, inplace=True)
 
     def __len__(self) -> int:
         return self._data_df.shape[0]
@@ -286,6 +314,8 @@ class BedTable6(BedTable3):
         column_type["name"] = str
         column_type["score"] = float
         column_type["strand"] = str
+
+        self._dtype2pddtype(column_type)
         return column_type
     
     def get_region_names(self) -> np.array:
@@ -313,6 +343,17 @@ class BedTable6(BedTable3):
         new_bed_table.load_from_dataframe(subset_data_df)
 
         return new_bed_table
+    
+    def load_from_BedTable3(self, bed3: BedTable3) -> None:
+        '''
+        Convert a BedTable3 to BedTable6.
+        '''
+        self._data_df = bed3.to_dataframe()
+        self._data_df["name"] = "."
+        self._data_df["score"] = "."
+        self._data_df["strand"] = "."
+
+        self._force_dtype()
 
 class BedTable6Plus(BedTable6):
     def __init__(self, 
@@ -338,6 +379,8 @@ class BedTable6Plus(BedTable6):
         for extra_col, extra_col_dtype in zip(self.extra_column_names, self.extra_column_dtype):
             column_type[extra_col] = extra_col_dtype
         
+        self._dtype2pddtype(column_type)
+
         return column_type
     
     @property
@@ -409,6 +452,8 @@ class BedTablePairEnd(BedTable3):
 
         for extra_col, extra_col_dtype in zip(self.extra_column_names, self.extra_column_dtype):
             column_type[extra_col] = extra_col_dtype
+
+        self._dtype2pddtype(column_type)
 
         return column_type
     
