@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 import os
+import re
+import pyBigWig
 import argparse
 import numpy as np
 import pandas as pd
-import pyBigWig
 
 from RGTools.utils import str2bool
 from RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
@@ -76,6 +77,67 @@ def set_parser(parser):
                         default=False, 
                         dest="ignore_strandness", 
                         )
+    parser.add_argument("--region_padding",
+                        help="Padding for each region inputted. "
+                             "Positive values will expand the region, "
+                             "negative values will shrink the region. [0,0]", 
+                        type=str, 
+                        default="0,0", 
+                        dest="region_padding", 
+                        )
+    
+    parser.add_argument("--output_type",
+                        help="What information is outputted. "
+                             "Options: [raw_count, RPK].",
+                        type=str,
+                        default="raw_count",
+                        dest="output_type",
+                        )
+
+def args_check_and_preprocessing(args):
+    '''
+    Check the validity of the input arguments and preprocess them.
+    
+    Returns the preprocessed arguments.
+    Argument list:
+    - sample_names: list of sample names
+    - bw_pls: list of paths to plus strand bigwig files
+    - bw_mns: list of paths to minus strand bigwig files
+    - region_file_path: path to the region file
+    - region_file_type: type of the region file
+    - opath: output path
+    - ignore_strandness: if to ignore strandness
+    - region_padding: padding for each region (string format).
+    - output_type: what information is outputted
+    - l_pad: left padding
+    - r_pad: right padding
+    '''
+    if len(args.sample_names) != len(args.bw_pls) or len(args.sample_names) != len(args.bw_mns):
+        raise Exception("Number of samples do not match the number of bigwig files.")
+    
+    if not os.path.exists(args.region_file_path):
+        raise Exception("Region file does not exist.")
+    
+    if not os.path.exists(args.opath):
+        os.makedirs(args.opath)
+
+    if not args.region_file_type in REGION_FILE_SUFFIX2CLASS_DICT.keys():
+        raise Exception("Unsupported region file type ({}).".format(args.region_file_type))
+
+    if not args.output_type in ["raw_count", "RPK"]:
+        raise Exception("Unsupported output type ({}).".format(args.output_type))
+
+    padding_match = re.match(r"(-?\d+),(-?\d+)", args.region_padding)
+    if not padding_match:
+        raise Exception("Invalid padding format.")
+    else:
+        l_pad = int(padding_match.group(1))
+        r_pad = int(padding_match.group(2))
+
+    args.l_pad = l_pad
+    args.r_pad = r_pad
+
+    return args
 
 def parse_region_input(region_file, file_type):
     '''
@@ -111,7 +173,60 @@ def parse_region_input(region_file, file_type):
 
     return region_df
 
+def count_single_region(bw_pl, bw_mn, chrom, 
+                        start, end, strand, 
+                        output_type="raw_count", 
+                        l_pad=0, r_pad=0):
+    '''
+    Count the reads in a single region.
+    Return the counts.
+
+    Keyword arguments:
+    - bw_pl: pyBigWig object for plus strand
+    - bw_mn: pyBigWig object for minus strand
+    - chrom: chromosome
+    - start: start position
+    - end: end position
+    - strand: strandness, "+" or "-" or "."
+    - output_type: what information is outputted [raw_count, RPK]
+    - l_pad: left padding
+    - r_pad: right padding
+    '''
+    if - l_pad - r_pad > end - start:
+        raise Exception("Padding is larger than the region ({}:{:d}-{:d}).".format(chrom, start, end))
+    else: 
+        start = start - l_pad
+        end = end + r_pad
+
+    pl_count = np.nan_to_num(bw_pl.values(chrom, 
+                                          start, 
+                                          end, 
+                                          ), 
+                             ).sum()
+    mn_count = -np.nan_to_num(bw_mn.values(chrom, 
+                                           start, 
+                                           end, 
+                                           ), 
+                              ).sum()
+
+    if strand == "+":
+        count = pl_count
+    elif strand == "-":
+        count = mn_count
+    elif strand == ".":
+        count = pl_count + mn_count
+
+    if output_type == "raw_count":
+        output = count
+    elif output_type == "RPK":
+        region_length = end - start
+        output = count / region_length * 1000
+
+    return output
+
 def main(args):
+    args = args_check_and_preprocessing(args)
+
     region_df = parse_region_input(args.region_file_path, 
                                    args.region_file_type, 
                                    )
@@ -130,35 +245,25 @@ def main(args):
         bw_mn = pyBigWig.open(bw_mn_path)
 
         for region_id, region_info in region_df.iterrows():
-            pl_count = np.nan_to_num(bw_pl.values(region_info["chrom"], 
-                                                  region_info["start"], 
-                                                  region_info["end"], 
-                                                  ), 
-                                     ).sum()
-            mn_count = -np.nan_to_num(bw_mn.values(region_info["chrom"], 
-                                                   region_info["start"], 
-                                                   region_info["end"], 
-                                                   ), 
-                                      ).sum()
-
-            # Strandness should be encoded in the input 
-            # Otherwise both strands are counted and summed
-            # TODO: add to documentation
-            if region_info["strand"] == "+":
-                count = pl_count
-            elif region_info["strand"] == "-":
-                count = mn_count
-            elif region_info["strand"] == ".":
-                count = pl_count + mn_count
-            else:
-                raise Exception("Unexpected value for strand field ({})".format(region_info["strand"]))
-
-            count_df.loc[region_id, sample] = count
+            count_df.loc[region_id, sample] = count_single_region(bw_pl,
+                                                                  bw_mn,
+                                                                  region_info["chrom"],
+                                                                  region_info["start"],
+                                                                  region_info["end"],
+                                                                  region_info["strand"],
+                                                                  args.output_type,
+                                                                  args.l_pad,
+                                                                  args.r_pad,
+                                                                  )
         
         bw_pl.close()
         bw_mn.close()
 
-    count_df.to_csv(os.path.join(args.opath, args.job_name + ".count.csv"))
+    if args.output_type == "RPK":
+        count_df.to_csv(os.path.join(args.opath, args.job_name + ".RPK.csv"))
+    elif args.output_type == "raw_count":
+        count_df.to_csv(os.path.join(args.opath, args.job_name + ".count.csv"))
+
     region_df.to_csv(os.path.join(args.opath, args.job_name + ".region_info.csv"))
 
 if __name__ == "__main__":
