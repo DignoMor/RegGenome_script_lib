@@ -259,7 +259,11 @@ def main(args):
         bw_pl.close()
         bw_mn.close()
 
-    count_df.to_csv(os.path.join(args.opath, args.job_name + ".count.csv"))
+    if args.output_type == "RPK":
+        count_df.to_csv(os.path.join(args.opath, args.job_name + ".RPK.csv"))
+    elif args.output_type == "raw_count":
+        count_df.to_csv(os.path.join(args.opath, args.job_name + ".count.csv"))
+
     region_df.to_csv(os.path.join(args.opath, args.job_name + ".region_info.csv"))
 
 if __name__ == "__main__":

@@ -225,7 +225,7 @@ class CountBwSigTest(unittest.TestCase):
         main(args)
 
         # Test count output
-        count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
+        count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".RPK.csv"), 
                                index_col=0,
                                )
         
