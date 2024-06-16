@@ -90,8 +90,8 @@ class BedTable3:
         Load a pd.DataFrame.
 
         Keyword arguments:
-        df -- a pd.DataFrame that contains the data for a bed table
-        column_map -- a dictionary that maps the column names in the 
+        - df: a pd.DataFrame that contains the data for a bed table
+        - column_map: a dictionary that maps the column names in the 
                       bed table to the column names in the pd.DataFrame         
         '''
         if not column_map:
@@ -211,10 +211,10 @@ class BedTable3:
         Return empty array if no data is found for the given region.
 
         Keyword arguments:
-        chrom -- chromosome
-        start -- start location
-        end -- end location
-        overlapping_base -- the number of overlapping bases required for a match
+        - chrom: chromosome
+        - start: start location
+        - end: end location
+        - overlapping_base: the number of overlapping bases required for a match
         '''
         #TODO: binary search to speed up
         # subset the data to the given chrom
@@ -516,15 +516,15 @@ class BedTablePairEnd(BedTable3):
         Return None if no data is found for the given pair regions.
 
         Keyword arguments:
-        chr1 -- chromosome of the first region
-        start1 -- start of the first region
-        end1 -- end of the first region
-        chr2 -- chromosome of the second region
-        start2 -- start of the second region
-        end2 -- end of the second region
-        column_name -- the column name of the data to return
-        overlapping_base1 -- the number of overlapping bases required for a match for the first input region
-        overlapping_base2 -- the number of overlapping bases required for a match for the second input region
+        - chr1: chromosome of the first region
+        - start1: start of the first region
+        - end1: end of the first region
+        - chr2: chromosome of the second region
+        - start2: start of the second region
+        - end2: end of the second region
+        - column_name: the column name of the data to return
+        - overlapping_base1: the number of overlapping bases required for a match for the first input region
+        - overlapping_base2: the number of overlapping bases required for a match for the second input region
         '''
         # forward search
         temp_ind_array = self.search_region(chr1, start1, end1, overlapping_base1)
@@ -548,10 +548,10 @@ class BedTablePairEnd(BedTable3):
         Return empty array if no data is found for the given region.
 
         Keyword arguments:
-        chrom -- chromosome
-        start -- start location
-        end -- end location
-        overlapping_base -- the number of overlapping bases required for a match
+        - chrom: chromosome
+        - start: start location
+        - end: end location
+        - overlapping_base: the number of overlapping bases required for a match
         '''
         searched_ind = self._other_region_inverse_index.search_region(chrom, start, end, overlapping_base)
         return self._other_region_inverse_index.get_region_extra_column("index")[searched_ind]
