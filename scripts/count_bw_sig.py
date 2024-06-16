@@ -59,7 +59,7 @@ def set_parser(parser):
     parser.add_argument("--region_file_type.", 
                         help="type of regional file. [bed3]"
                         "(options: {})".format(", ".join(REGION_FILE_SUFFIX2CLASS_DICT.keys())), 
-                        default=0, 
+                        default="bed3", 
                         type=str, 
                         dest="region_file_type", 
                         )
