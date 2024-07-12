@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 import re
 import sys
 import json
@@ -6,11 +6,27 @@ import argparse
 
 import pandas as pd
 
+from RGTools.utils import str2bool
+
 class SequencingQcSummary:
     '''
     Summarizing the sequencing QC results for a sample 
     based on bam flagstat and fastp json files.
     '''
+    @staticmethod
+    def get_fastp_fields():
+        '''
+        List of fields in the fastp json file that are outputted for QC.
+        '''
+        return ["total_reads", 
+                "passed_filter_reads", 
+                "percentage_passed_filter", 
+                "percentage_low_quality", 
+                "percentage_too_many_N", 
+                "percentage_too_short", 
+                "percentage_too_long", 
+                ]
+
     @staticmethod
     def flagstat_key_map(key):
         '''
@@ -58,41 +74,49 @@ class SequencingQcSummary:
             key = key.replace(">", "_gt_")
         
         return key
-
+    
     @staticmethod
-    def set_parser(parser):
-        parser.add_argument("--sample", 
-                            help="Sample name for the sample to QC.", 
-                            action="append",
-                            )
-        
-        parser.add_argument("--flagstat_path",
-                            help="Path to flagstat text file for the sample.",
-                            action="append",
-                            )
-        
-        parser.add_argument("--fastp_json_path",
-                            help="Path to fastp json file for the sample.",
-                            action="append",
-                            )
-        
-        parser.add_argument("--flagstat_fields", 
-                            help="Fields to extract from the flagstat file. [total_reads]",
-                            action="append",
-                            default=["total_reads"],
-                            )
-        
-        parser.add_argument("--fastp_fields",
-                            help="Fields to extract from the fastp json file. [total_reads]",
-                            action="append",
-                            default=["total_reads"],
-                            )
+    def set_general_parser_arguments(parser):
+        '''
+        Set the general parser arguments that are used in 
+        all subparsers:
 
+        - sample: sample name for the sample to QC.
+        - opath: output path for the sequencing QC summary.
+        '''
+        parser.add_argument("--sample",
+                            help="Sample name for the sample to QC.",
+                            action="append",
+                            )
+        
         parser.add_argument("--opath",
                             help="Output path for the sequencing QC summary. [stdout]",
                             default="stdout",
                             type=str,
                             )
+
+    @staticmethod
+    def set_trim_qc_parser(trim_qc_parser):
+        SequencingQcSummary.set_general_parser_arguments(trim_qc_parser)
+
+        trim_qc_parser.add_argument("--fastp_json_path",
+                                    help="Path to fastp json file for the sample.",
+                                    action="append",
+                                    type=str,
+                                    )
+        
+        trim_qc_parser.add_argument("--output_header",
+                                    help="If to output header for the summary. [True]",
+                                    type=str2bool,
+                                    default=True,
+                                    )
+        
+    @staticmethod
+    def set_parser(parser):
+        subparsers = parser.add_subparsers(dest="command")
+
+        trim_qc_parser = subparsers.add_parser("trim_qc", help="QC the trimming step.")
+        SequencingQcSummary.set_trim_qc_parser(trim_qc_parser)
 
     @staticmethod
     def read_flagstat(flagstat_path):
@@ -151,11 +175,44 @@ class SequencingQcSummary:
         info_dict["percentage_too_long"] = info_dict["too_long_reads"] / info_dict["total_reads"]
 
         return info_dict
+    
+    @staticmethod
+    def trim_qc_main(trim_qc_args):
+        '''
+        Main function for QC trimming results.
+        '''
+        result_df = pd.DataFrame(columns=["field"] + trim_qc_args.sample)
+
+        for sample, fastp_json_path in zip(trim_qc_args.sample, trim_qc_args.fastp_json_path):
+            fastp_info = SequencingQcSummary.read_fastp_json(fastp_json_path)
+            for ind, field in enumerate(SequencingQcSummary.get_fastp_fields()):
+                result_df.loc[ind, "field"] = "fastp_" + field
+                result_df.loc[ind, sample] = fastp_info[field]
+
+        SequencingQcSummary.output_df(result_df, 
+                                      trim_qc_args.opath, 
+                                      header=trim_qc_args.output_header,
+                                      )
+
+    @staticmethod
+    def output_df(df, opath, **kwargs):
+        '''
+        Output the dataframe to the opath.
+
+        Keyword arguments:
+        - df: dataframe to output
+        - opath: output path
+        - kwargs: keyword arguments for the pd.to_csv function
+        '''
+        if opath == "stdout":
+            df.to_csv(sys.stdout, sep="\t", index=False, **kwargs)
+        else:
+            df.to_csv(opath, sep="\t", index=False, **kwargs)
 
     @staticmethod
     def main(args) -> None:
         '''
-        Main function ofr summarizing sequencing QC.
+        Main function for summarizing sequencing QC.
         
         args: 
         - sample: list of sample names
@@ -163,29 +220,8 @@ class SequencingQcSummary:
         - fastp_json_path: list of paths to fastp json files
         - opath: output path for the summary
         '''
-        result_df = pd.DataFrame(columns=["sample"] + \
-                                 ["flagstat_" + f for f in args.flagstat_fields] + \
-                                 ["fastp_" + f for f in args.fastp_fields])
-        result_df.set_index("sample", inplace=True)
-
-        for sample, flagstat_path, fastp_json_path in zip(args.sample, args.flagstat_path, args.fastp_json_path):
-            flagstat_info = SequencingQcSummary.read_flagstat(flagstat_path)
-            fastp_info = SequencingQcSummary.read_fastp_json(fastp_json_path)
-
-            for field in args.flagstat_fields:
-                result_df.loc[sample, "flagstat_" + field] = flagstat_info[field]
-            
-            for field in args.fastp_fields:
-                result_df.loc[sample, "fastp_" + field] = fastp_info[field]
-        
-        result_df.reset_index(inplace=True)
-
-        if args.opath == "stdout":
-            result_df.to_csv(sys.stdout, sep="\t", index=False)
-        else:
-            result_df.to_csv(args.opath, sep="\t", index=False)
-
-
+        if args.command == "trim_qc":
+            SequencingQcSummary.trim_qc_main(args)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
