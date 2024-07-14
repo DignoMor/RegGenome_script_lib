@@ -112,11 +112,29 @@ class SequencingQcSummary:
                                     )
         
     @staticmethod
+    def set_alignment_qc_parser(alignment_qc_parser):
+        SequencingQcSummary.set_general_parser_arguments(alignment_qc_parser)
+
+        alignment_qc_parser.add_argument("--STAR_log_path",
+                                        help="Path to STAR log for the sample.",
+                                        action="append",
+                                        type=str,
+                                        )
+
+        alignment_qc_parser.add_argument("--output_header",
+                                        help="If to output header for the summary. [False]",
+                                        type=str2bool,
+                                        default=False,
+                                        )
+    @staticmethod
     def set_parser(parser):
         subparsers = parser.add_subparsers(dest="command")
 
         trim_qc_parser = subparsers.add_parser("trim_qc", help="QC the trimming step.")
         SequencingQcSummary.set_trim_qc_parser(trim_qc_parser)
+
+        alignment_qc_parser = subparsers.add_parser("alignment_qc", help="QC the alignment step.")
+        SequencingQcSummary.set_alignment_qc_parser(alignment_qc_parser)
 
     @staticmethod
     def read_flagstat(flagstat_path):
@@ -176,6 +194,39 @@ class SequencingQcSummary:
 
         return info_dict
     
+    def read_STAR_log(STAR_log_path):
+        '''
+        Read a STAR log file and return the info in a dictionary.
+        '''
+        info_dict = {}
+
+        with open(STAR_log_path, "r") as f:
+            for line in f:
+                if "Number of input reads" in line:
+                    info_dict["total_reads"] = int(line.split("\t")[1])
+                if "Uniquely mapped reads number" in line:
+                    info_dict["uniquely_mapped_reads"] = int(line.split("\t")[1])
+                if "Uniquely mapped reads % " in line:
+                    info_dict["percentage_uniquely_mapped_reads"] = float(line.split("\t")[1].replace("%", ""))/100
+                if "Average mapped length" in line:
+                    info_dict["average_mapped_length"] = float(line.split("\t")[1])
+                if "Number of splices: Total" in line:
+                    info_dict["total_splices"] = int(line.split("\t")[1])
+                if "Number of reads mapped to multiple loci" in line:
+                    info_dict["multimapper_count"] = int(line.split("\t")[1])
+                if r"% of reads mapped to multiple loci" in line:
+                    info_dict["percentage_multimappers"] = float(line.split("\t")[1].replace("%", ""))/100
+                if "Number of reads unmapped: too many mismatches" in line:
+                    info_dict["unmapped_too_many_mismatches"] = int(line.split("\t")[1])
+                if r"% of reads unmapped: too many mismatches" in line:
+                    info_dict["percentage_unmapped_too_many_mismatches"] = float(line.split("\t")[1].replace("%", ""))/100
+                if "Number of reads unmapped: too short" in line:
+                    info_dict["unmapped_too_short"] = int(line.split("\t")[1])
+                if r"% of reads unmapped: too short" in line:
+                    info_dict["percentage_unmapped_too_short"] = float(line.split("\t")[1].replace("%", ""))/100
+                
+        return info_dict
+    
     @staticmethod
     def trim_qc_main(trim_qc_args):
         '''
@@ -192,6 +243,24 @@ class SequencingQcSummary:
         SequencingQcSummary.output_df(result_df, 
                                       trim_qc_args.opath, 
                                       header=trim_qc_args.output_header,
+                                      )
+    
+    @staticmethod
+    def alignmenet_qc_main(alignment_qc_args):
+        '''
+        Main function for QC alignment results.
+        '''
+        result_df = pd.DataFrame(columns=["field"] + alignment_qc_args.sample)
+
+        for sample, STAR_log_path in zip(alignment_qc_args.sample, alignment_qc_args.STAR_log_path):
+            STAR_info = SequencingQcSummary.read_STAR_log(STAR_log_path)
+            for ind, field in enumerate(STAR_info.keys()):
+                result_df.loc[ind, "field"] = "STAR_" + field
+                result_df.loc[ind, sample] = STAR_info[field]
+
+        SequencingQcSummary.output_df(result_df,
+                                      alignment_qc_args.opath,
+                                      header=alignment_qc_args.output_header,
                                       )
 
     @staticmethod
@@ -222,6 +291,8 @@ class SequencingQcSummary:
         '''
         if args.command == "trim_qc":
             SequencingQcSummary.trim_qc_main(args)
+        if args.command == "alignment_qc":
+            SequencingQcSummary.alignmenet_qc_main(args)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
