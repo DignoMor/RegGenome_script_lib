@@ -120,6 +120,27 @@ class SequencingQcSummary:
                                         action="append",
                                         type=str,
                                         )
+
+    @staticmethod
+    def set_flagstat_qc_parser(flagstat_qc_parser):
+        SequencingQcSummary.set_general_parser_arguments(flagstat_qc_parser)
+
+        flagstat_qc_parser.add_argument("--flagstat_path",
+                                        help="Path to flagstat file for the sample.",
+                                        action="append",
+                                        type=str,
+                                        )
+
+        flagstat_qc_parser.add_argument("--flagstat_key",
+                                        help="Key in the flagstat file to extract the QC info."
+                                             "(eg. total_reads, mapped_reads, properly paired, etc.)",
+                                        type=str,
+                                        )
+        
+        flagstat_qc_parser.add_argument("--output_field_name",
+                                        help="Output field name for the flagstat QC info.",
+                                        type=str,
+                                        )
                                     
     @staticmethod
     def set_parser(parser):
@@ -130,6 +151,9 @@ class SequencingQcSummary:
 
         alignment_qc_parser = subparsers.add_parser("alignment_qc", help="QC the alignment step.")
         SequencingQcSummary.set_alignment_qc_parser(alignment_qc_parser)
+
+        flagstat_qc_parser = subparsers.add_parser("flagstat_qc", help="QC flagstat files.")
+        SequencingQcSummary.set_flagstat_qc_parser(flagstat_qc_parser)
 
     @staticmethod
     def read_flagstat(flagstat_path):
@@ -257,6 +281,29 @@ class SequencingQcSummary:
                                       alignment_qc_args.opath,
                                       header=alignment_qc_args.output_header,
                                       )
+    
+    @staticmethod
+    def flagstat_qc_main(flagstat_qc_args):
+        '''
+        Main function for flastat QC results.
+        '''
+        result_df = pd.DataFrame(columns=["field"] + flagstat_qc_args.sample)
+
+        result_df.loc[0, "field"] = flagstat_qc_args.output_field_name
+
+        for sample, flagstat_path in zip(flagstat_qc_args.sample, flagstat_qc_args.flagstat_path):
+            flagstat_info = SequencingQcSummary.read_flagstat(flagstat_path)
+            # Check for flagstat key existence in the flagstat file
+            if not flagstat_qc_args.flagstat_key in flagstat_info.keys():
+                raise ValueError(f"Flagstat key {flagstat_qc_args.flagstat_key} not found in the flagstat file {flagstat_path}".format(flagstat_qc_args.flagstat_key, 
+                                                                                                                                       flagstat_path, 
+                                                                                                                                       ))
+            result_df.loc[0, sample] = flagstat_info[flagstat_qc_args.flagstat_key]
+    
+        SequencingQcSummary.output_df(result_df,
+                                      flagstat_qc_args.opath,
+                                      header=flagstat_qc_args.output_header,
+                                      )
 
     @staticmethod
     def output_df(df, opath, **kwargs):
@@ -288,6 +335,8 @@ class SequencingQcSummary:
             SequencingQcSummary.trim_qc_main(args)
         if args.command == "alignment_qc":
             SequencingQcSummary.alignmenet_qc_main(args)
+        if args.command == "flagstat_qc":
+            SequencingQcSummary.flagstat_qc_main(args)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
