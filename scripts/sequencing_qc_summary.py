@@ -94,6 +94,12 @@ class SequencingQcSummary:
                             default="stdout",
                             type=str,
                             )
+        
+        parser.add_argument("--output_header",
+                            help="If to output header for the summary. [True]",
+                            type=str2bool,
+                            default=False,
+                            )
 
     @staticmethod
     def set_trim_qc_parser(trim_qc_parser):
@@ -105,12 +111,6 @@ class SequencingQcSummary:
                                     type=str,
                                     )
         
-        trim_qc_parser.add_argument("--output_header",
-                                    help="If to output header for the summary. [True]",
-                                    type=str2bool,
-                                    default=True,
-                                    )
-        
     @staticmethod
     def set_alignment_qc_parser(alignment_qc_parser):
         SequencingQcSummary.set_general_parser_arguments(alignment_qc_parser)
@@ -120,12 +120,7 @@ class SequencingQcSummary:
                                         action="append",
                                         type=str,
                                         )
-
-        alignment_qc_parser.add_argument("--output_header",
-                                        help="If to output header for the summary. [False]",
-                                        type=str2bool,
-                                        default=False,
-                                        )
+                                    
     @staticmethod
     def set_parser(parser):
         subparsers = parser.add_subparsers(dest="command")
