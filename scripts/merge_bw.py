@@ -89,21 +89,40 @@ def merge_bw_files(rep1_bw_path, rep2_bw_path, chroms, chrom_sizes,
 
     for chrom, chrom_length in zip(chroms, chrom_sizes):
 
-        rep1_chrom_intervals = rep1_bw.intervals(chrom)
-        rep2_chrom_intervals = rep2_bw.intervals(chrom)
+        #TODO: better fix for invalid interval error
+        try:
+            rep1_chrom_intervals = rep1_bw.intervals(chrom)
+        except RuntimeError:
+            rep1_chrom_intervals = ()
+        try:
+            rep2_chrom_intervals = rep2_bw.intervals(chrom)
+        except RuntimeError:
+            rep2_chrom_intervals = ()
 
         if verbose:
             sys.stderr.write("Merging {}...\n".format(chrom))
-        merged_interval_list = combine_bw_intervals(rep1_chrom_intervals,
-                                                    rep2_chrom_intervals,
-                                                    chrom_length,
-                                                    verbose=verbose)
 
-        merged_bw.addEntries([chrom] * len(merged_interval_list),
-                              [e[0] for e in merged_interval_list],
-                              ends=[e[1] for e in merged_interval_list],
-                              values=[e[2] for e in merged_interval_list],
-                              )
+        # In case of empty chromosomes, no combining is needed
+        if len(rep1_chrom_intervals) == 0 and len(rep2_chrom_intervals) == 0:
+            pass
+        elif len(rep1_chrom_intervals) == 0 and len(rep2_chrom_intervals) != 0:
+            merged_interval_list = rep2_chrom_intervals
+        elif len(rep1_chrom_intervals) != 0 and len(rep2_chrom_intervals) == 0:
+            merged_interval_list = rep1_chrom_intervals
+        else:
+            merged_interval_list = combine_bw_intervals(rep1_chrom_intervals,
+                                                        rep2_chrom_intervals,
+                                                        chrom_length,
+                                                        verbose=verbose)
+
+        if len(rep1_chrom_intervals) == 0 and len(rep2_chrom_intervals) == 0:
+            pass
+        else:
+            merged_bw.addEntries([chrom] * len(merged_interval_list),
+                                [e[0] for e in merged_interval_list],
+                                ends=[e[1] for e in merged_interval_list],
+                                values=[e[2] for e in merged_interval_list],
+                                )
 
     rep1_bw.close()
     rep2_bw.close()
