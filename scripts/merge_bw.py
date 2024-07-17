@@ -89,8 +89,15 @@ def merge_bw_files(rep1_bw_path, rep2_bw_path, chroms, chrom_sizes,
 
     for chrom, chrom_length in zip(chroms, chrom_sizes):
 
-        rep1_chrom_intervals = rep1_bw.intervals(chrom)
-        rep2_chrom_intervals = rep2_bw.intervals(chrom)
+        #TODO: better fix for invalid interval error
+        try:
+            rep1_chrom_intervals = rep1_bw.intervals(chrom)
+        except RuntimeError:
+            rep1_chrom_intervals = ((0, chrom_length, 0))
+        try:
+            rep2_chrom_intervals = rep2_bw.intervals(chrom)
+        except RuntimeError:
+            rep2_chrom_intervals = ((0, chrom_length, 0))
 
         if verbose:
             sys.stderr.write("Merging {}...\n".format(chrom))
