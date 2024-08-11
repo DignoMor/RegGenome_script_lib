@@ -77,6 +77,7 @@ def set_parser(parser):
                         default=False, 
                         dest="ignore_strandness", 
                         )
+
     parser.add_argument("--region_padding",
                         help="Padding for each region inputted. "
                              "Positive values will expand the region, "
@@ -84,6 +85,23 @@ def set_parser(parser):
                         type=str, 
                         default="0,0", 
                         dest="region_padding", 
+                        )
+    
+    parser.add_argument("--min_len_after_padding",
+                        help="Minimum length of the region after padding. [0]", 
+                        type=int, 
+                        default=50, 
+                        dest="min_len_after_padding", 
+                        )
+    
+    parser.add_argument("--method_resolving_invalid_padding",
+                        help="Method to resolve invalid padding. [raise]"
+                             "Options: "
+                             "- raise: raise an exception, "
+                             "- fallback: give up on padding.", 
+                        type=str, 
+                        default="raise", 
+                        dest="method_resolving_invalid_padding", 
                         )
     
     parser.add_argument("--output_type",
@@ -137,6 +155,12 @@ def args_check_and_preprocessing(args):
     args.l_pad = l_pad
     args.r_pad = r_pad
 
+    if not args.min_len_after_padding >= 1:
+        raise Exception("Minimum length after padding should be positive.")
+
+    if not args.method_resolving_invalid_padding in ["raise", "fallback"]:
+        raise Exception("Unsupported method to resolve invalid padding ({}).".format(args.method_resolving_invalid_padding))
+
     return args
 
 def parse_region_input(region_file, file_type):
@@ -176,7 +200,10 @@ def parse_region_input(region_file, file_type):
 def count_single_region(bw_pl, bw_mn, chrom, 
                         start, end, strand, 
                         output_type="raw_count", 
-                        l_pad=0, r_pad=0):
+                        l_pad=0, r_pad=0, 
+                        min_len_after_padding=50,
+                        method_resolving_invalid_padding="raise",
+                        ):
     '''
     Count the reads in a single region.
     Return the counts.
@@ -191,9 +218,17 @@ def count_single_region(bw_pl, bw_mn, chrom,
     - output_type: what information is outputted [raw_count, RPK]
     - l_pad: left padding
     - r_pad: right padding
+    - min_len_after_padding: minimum length of the region after padding
+    - method_resolving_invalid_padding: method to resolve invalid padding
     '''
-    if - l_pad - r_pad > end - start:
-        raise Exception("Padding is larger than the region ({}:{:d}-{:d}).".format(chrom, start, end))
+    if - l_pad - r_pad + min_len_after_padding > end - start:
+        if method_resolving_invalid_padding == "fallback":
+            start = start
+            end = end
+        elif method_resolving_invalid_padding == "raise":
+            raise Exception("Padding is larger than the region ({}:{:d}-{:d}).".format(chrom, start, end))
+        else:
+            raise Exception("Unsupported method to resolve invalid padding ({}).".format(method_resolving_invalid_padding))
     else: 
         start = start - l_pad
         end = end + r_pad
@@ -246,15 +281,17 @@ def main(args):
 
         for region_id, region_info in region_df.iterrows():
             count_df.loc[region_id, sample] = count_single_region(bw_pl,
-                                                                  bw_mn,
-                                                                  region_info["chrom"],
-                                                                  region_info["start"],
-                                                                  region_info["end"],
-                                                                  region_info["strand"],
-                                                                  args.output_type,
-                                                                  args.l_pad,
-                                                                  args.r_pad,
-                                                                  )
+                                                                    bw_mn,
+                                                                    region_info["chrom"],
+                                                                    region_info["start"],
+                                                                    region_info["end"],
+                                                                    region_info["strand"],
+                                                                    args.output_type,
+                                                                    args.l_pad,
+                                                                    args.r_pad,
+                                                                    args.min_len_after_padding,
+                                                                    args.method_resolving_invalid_padding,
+                                                                    )
         
         bw_pl.close()
         bw_mn.close()

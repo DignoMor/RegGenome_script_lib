@@ -93,6 +93,8 @@ class CountBwSigTest(unittest.TestCase):
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
                                   region_padding="0,0", 
+                                  min_len_after_padding=1,
+                                  method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
                                   )
         main(args)
@@ -125,6 +127,8 @@ class CountBwSigTest(unittest.TestCase):
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
                                   region_padding="0,0", 
+                                  min_len_after_padding=1,
+                                  method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
                                   )
         
@@ -152,6 +156,8 @@ class CountBwSigTest(unittest.TestCase):
                                   ignore_strandness=True,
                                   opath=self.__temp_dir,
                                   region_padding="0,0", 
+                                  min_len_after_padding=1,
+                                  method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
                                   )
         
@@ -168,6 +174,8 @@ class CountBwSigTest(unittest.TestCase):
                                   ignore_strandness=True,
                                   opath=self.__temp_dir,
                                   region_padding="0,0", 
+                                  min_len_after_padding=1,
+                                  method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
                                   )
 
@@ -194,6 +202,8 @@ class CountBwSigTest(unittest.TestCase):
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
                                   region_padding="-100,-100", 
+                                  min_len_after_padding=1,
+                                  method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
                                   )
         
@@ -207,6 +217,42 @@ class CountBwSigTest(unittest.TestCase):
         self.assertEqual(count_df.shape, (3, 1))
 
         self.assertEqual(count_df.loc["chr6_170553801_170554802", "sample1"], 344)
+
+    def test_resolving_invalid_padding(self):
+        job_name = "test_resolving_invalid_padding"
+        args = argparse.Namespace(job_name=job_name,
+                                  sample_names=["sample1"],
+                                  bw_pls=self.__bw_pls, 
+                                  bw_mns=self.__bw_mns,
+                                  region_file_type="bed6",
+                                  region_file_path=self.__bed6_path,
+                                  ignore_strandness=False,
+                                  opath=self.__temp_dir,
+                                  region_padding="0,0", 
+                                  min_len_after_padding=10000,
+                                  method_resolving_invalid_padding="raise", 
+                                  output_type="raw_count",
+                                  )
+        
+        with self.assertRaises(Exception):
+            main(args)
+        
+        args.min_len_after_padding = 1
+        args.region_padding = "-1000,-1000"
+        with self.assertRaises(Exception):
+            main(args)
+
+        args.method_resolving_invalid_padding = "fallback"
+        main(args)
+
+        # Test count output
+        count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
+                               index_col=0,
+                               )
+        
+        self.assertEqual(count_df.shape, (3, 1))
+
+        self.assertEqual(count_df.loc["chr6_170553801_170554802", "sample1"], 348)
     
     def test_output_type(self):
         job_name = "test_output_type"
@@ -219,6 +265,8 @@ class CountBwSigTest(unittest.TestCase):
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
                                   region_padding="-250,-250", 
+                                  min_len_after_padding=1,
+                                  method_resolving_invalid_padding="raise", 
                                   output_type="RPK",
                                   )
         
