@@ -153,7 +153,7 @@ def main(args):
         output_bed_table = BedTable6()
     else:
         output_bed_table = BedTable6Plus(extra_column_names=all_extra_col_names, 
-                                         extra_column_dtype=["str"] * len(all_extra_col_names),
+                                         extra_column_dtype=[str] * len(all_extra_col_names),
                                          )
     
     column_map = {"chrom": "chr_name",
