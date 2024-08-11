@@ -19,6 +19,9 @@ def get_windowed_sums(bw, window_size, chrom, chrom_size):
     Get a numpy array of mean signals from a bw
     with fixed window size.
     '''
+    if not chrom in bw.chroms().keys():
+        return np.zeros(chrom_size//window_size - 1)
+
     sum_signals = []
     for bin_index in range(chrom_size//window_size - 1):
         sum_signal = bw.stats(chrom,
