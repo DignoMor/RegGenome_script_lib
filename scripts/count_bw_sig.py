@@ -77,14 +77,23 @@ def set_parser(parser):
                         default=False, 
                         dest="ignore_strandness", 
                         )
-
-    parser.add_argument("--region_padding",
-                        help="Padding for each region inputted. "
+    
+    parser.add_argument("--l_pad",
+                        help="Padding for the left side of the region. [0]"
                              "Positive values will expand the region, "
-                             "negative values will shrink the region. [0,0]", 
-                        type=str, 
-                        default="0,0", 
-                        dest="region_padding", 
+                             "negative values will shrink the region.",
+                        type=int,
+                        default=0,
+                        dest="l_pad",
+                        )
+    
+    parser.add_argument("--r_pad",
+                        help="Padding for the right side of the region. [0]"
+                             "Positive values will expand the region, "
+                             "negative values will shrink the region.",
+                        type=int,
+                        default=0,
+                        dest="r_pad",
                         )
     
     parser.add_argument("--min_len_after_padding",
@@ -144,16 +153,6 @@ def args_check_and_preprocessing(args):
 
     if not args.output_type in ["raw_count", "RPK"]:
         raise Exception("Unsupported output type ({}).".format(args.output_type))
-
-    padding_match = re.match(r"(-?\d+),(-?\d+)", args.region_padding)
-    if not padding_match:
-        raise Exception("Invalid padding format.")
-    else:
-        l_pad = int(padding_match.group(1))
-        r_pad = int(padding_match.group(2))
-
-    args.l_pad = l_pad
-    args.r_pad = r_pad
 
     if not args.min_len_after_padding >= 1:
         raise Exception("Minimum length after padding should be positive.")
