@@ -13,6 +13,8 @@ class CountTableTool:
     def main(args):
         if args.subcommand == "per_million_normalization":
             CountTableTool.per_million_normalization_main(args)
+        elif args.subcommand == "cat_table":
+            CountTableTool.cat_table_main(args)
         else:
             raise ValueError("Invalid subcommand.")
 
@@ -24,10 +26,16 @@ class CountTableTool:
                                                                  help="Per million normalization.", 
                                                                  )
 
-        CountTableTool.set_parser_general_io(parser_per_million_normalization)
+        CountTableTool.set_parser_per_million_normalization(parser_per_million_normalization)
+
+        parser_cat_table = subparsers.add_parser("cat_table",
+                                                 help="Concatenate count tables.",
+                                                 )
+        
+        CountTableTool.set_parser_cat_table(parser_cat_table)
 
     @staticmethod
-    def set_parser_general_io(parser):
+    def set_parser_per_million_normalization(parser):
         parser.add_argument("--inpath", "-I", 
                             help="Input path for count table.", 
                             required=True, 
@@ -38,6 +46,21 @@ class CountTableTool:
                             help="Output path.", 
                             default="stdout", 
                             dest="opath", 
+                            )
+
+    @staticmethod
+    def set_parser_cat_table(parser):
+        parser.add_argument("--inpath", "-I", 
+                            help="Input paths for count tables.", 
+                            required=True, 
+                            dest="inpaths", 
+                            action="append",
+                            )
+        
+        parser.add_argument("--opath", 
+                            help="Output path.", 
+                            default="stdout", 
+                            dest="opath",
                             )
 
     @staticmethod
@@ -58,6 +81,18 @@ class CountTableTool:
         input_df = CountTableTool.read_input_df(args.inpath)
         output_df = input_df / input_df.sum(axis=0) * 1e6
         CountTableTool.write_output_df(output_df, args.opath)
+        return None
+    
+    def cat_table_main(args):
+        input_dfs = [CountTableTool.read_input_df(inpath) for inpath in args.inpaths]
+        output_df = pd.concat(input_dfs, axis=1)
+        CountTableTool.write_output_df(output_df, 
+                                       args.opath, 
+                                       )
+        
+        if not (output_df.shape[0] == input_dfs[0].shape[0]):
+            raise ValueError("Index mismatch.")
+
         return None
 
 if __name__ == "__main__":
