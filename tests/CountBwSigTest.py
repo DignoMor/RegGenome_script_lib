@@ -23,7 +23,7 @@ class CountBwSigTest(unittest.TestCase):
 
         self.__bed3_path = os.path.join(self.__temp_dir, "test.bed3")
         self.__bed6_path = os.path.join(self.__temp_dir, "test.bed6")
-        self.__bed6plus_path = os.path.join(self.__temp_dir, "test.bed6plus")
+        self.__bed6gene_path = os.path.join(self.__temp_dir, "test.bed6gene")
 
         region_df = pd.DataFrame({"chr": ["chr6", "chr14", "chr17"],
                                   "start_loc": [170553801, 75278325, 45894026],
@@ -31,7 +31,7 @@ class CountBwSigTest(unittest.TestCase):
                                   "name": ["TBP", "FOS", "MAPT"],
                                   "score": [1, 2, 3],
                                   "strand": ["+", "-", "+"],
-                                  "extra": ["extra1", "extra2", "extra3"],
+                                  "gene_name": ["gene1", "gene2", "gene3"],
                                   }, 
                                   )
 
@@ -57,20 +57,20 @@ class CountBwSigTest(unittest.TestCase):
                                       )
         bedtable6.write(self.__bed6_path)
 
-        bedtable6plus = BedTable6Plus(extra_column_names=["extra"],
+        bedtable6gene = BedTable6Plus(extra_column_names=["gene_name"],
                                       extra_column_dtype=[str],
                                       )
-        bedtable6plus.load_from_dataframe(region_df, 
+        bedtable6gene.load_from_dataframe(region_df, 
                                           column_map={"chrom": "chr", 
                                                       "start": "start_loc", 
                                                       "end": "end_loc", 
                                                       "name": "name", 
                                                       "score": "score", 
                                                       "strand": "strand", 
-                                                      "extra": "extra", 
+                                                      "gene_name": "gene_name", 
                                                       },
                                           )
-        bedtable6plus.write(self.__bed6plus_path)
+        bedtable6gene.write(self.__bed6gene_path)
 
         #TODO: Add TRE bed tests
 
@@ -145,6 +145,39 @@ class CountBwSigTest(unittest.TestCase):
 
         self.assertEqual(count_df.loc["chr6_170553801_170554802", "sample1"], 348)
     
+    def test_main_bed6gene_input(self):
+        job_name = "test_bed6gene_input"
+        args = argparse.Namespace(job_name=job_name,
+                                  sample_names=["sample1"],
+                                  bw_pls=self.__bw_pls, 
+                                  bw_mns=self.__bw_mns,
+                                  region_file_type="bed6gene",
+                                  region_file_path=self.__bed6gene_path,
+                                  ignore_strandness=False,
+                                  opath=self.__temp_dir,
+                                  l_pad = 0, 
+                                  r_pad = 0, 
+                                  min_len_after_padding=1,
+                                  method_resolving_invalid_padding="raise", 
+                                  output_type="raw_count",
+                                  )
+        main(args)
+        # Test count output
+        count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
+                               index_col=0,
+                               )
+        
+        self.assertEqual(count_df.shape, (3, 1))
+
+        self.assertEqual(count_df.loc["chr6_170553801_170554802", "sample1"], 348)
+
+        # Test region info output
+        region_info_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".region_info.csv"),
+                                     index_col=0,
+                                     )
+        self.assertEqual(region_info_df.shape, (3, 7))
+        self.assertEqual(region_info_df.loc["chr6_170553801_170554802", "gene_name"], "gene1")
+
     def test_main_strandness_handle(self):
         # Test ignore strandness for bed6
         job_name_bed6 = "test_bed6_ignore_strandness"

@@ -10,11 +10,22 @@ import pandas as pd
 from RGTools.utils import str2bool
 from RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
 
+def BedTable6Gene():
+    '''
+    Helper function to return a BedTable6Plus object
+    that can load bed6gene annotations.
+    '''
+    bt = BedTable6Plus(extra_column_names=["gene_name"], 
+                       extra_column_dtype=[str], 
+                       )
+
+    return bt
+
 #TODO: add BedTableTRE support
 REGION_FILE_SUFFIX2CLASS_DICT = {
     "bed3": BedTable3,
     "bed6": BedTable6,
-    "bed6plus": BedTable6Plus, 
+    "bed6gene": BedTable6Gene, 
 }
 
 def set_parser(parser):
