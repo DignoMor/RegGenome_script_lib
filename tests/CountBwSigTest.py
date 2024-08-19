@@ -92,7 +92,8 @@ class CountBwSigTest(unittest.TestCase):
                                   region_file_path=self.__bed3_path,
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
-                                  region_padding="0,0", 
+                                  l_pad = 0, 
+                                  r_pad = 0, 
                                   min_len_after_padding=1,
                                   method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
@@ -126,7 +127,8 @@ class CountBwSigTest(unittest.TestCase):
                                   region_file_path=self.__bed6_path,
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
-                                  region_padding="0,0", 
+                                  l_pad = 0, 
+                                  r_pad = 0, 
                                   min_len_after_padding=1,
                                   method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
@@ -155,7 +157,8 @@ class CountBwSigTest(unittest.TestCase):
                                   region_file_path=self.__bed6_path,
                                   ignore_strandness=True,
                                   opath=self.__temp_dir,
-                                  region_padding="0,0", 
+                                  l_pad = 0, 
+                                  r_pad = 0, 
                                   min_len_after_padding=1,
                                   method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
@@ -173,7 +176,8 @@ class CountBwSigTest(unittest.TestCase):
                                   region_file_path=self.__bed3_path,
                                   ignore_strandness=True,
                                   opath=self.__temp_dir,
-                                  region_padding="0,0", 
+                                  l_pad = 0, 
+                                  r_pad = 0, 
                                   min_len_after_padding=1,
                                   method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
@@ -201,7 +205,8 @@ class CountBwSigTest(unittest.TestCase):
                                   region_file_path=self.__bed6_path,
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
-                                  region_padding="-100,-100", 
+                                  l_pad = -100, 
+                                  r_pad = -100, 
                                   min_len_after_padding=1,
                                   method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
@@ -228,7 +233,8 @@ class CountBwSigTest(unittest.TestCase):
                                   region_file_path=self.__bed6_path,
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
-                                  region_padding="0,0", 
+                                  l_pad = 0, 
+                                  r_pad = 0, 
                                   min_len_after_padding=10000,
                                   method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
@@ -238,7 +244,8 @@ class CountBwSigTest(unittest.TestCase):
             main(args)
         
         args.min_len_after_padding = 1
-        args.region_padding = "-1000,-1000"
+        args.l_pad= -1000
+        args.r_pad= -1000
         with self.assertRaises(Exception):
             main(args)
 
@@ -264,7 +271,8 @@ class CountBwSigTest(unittest.TestCase):
                                   region_file_path=self.__bed6_path,
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
-                                  region_padding="-250,-250", 
+                                  l_pad = -250, 
+                                  r_pad = -250,
                                   min_len_after_padding=1,
                                   method_resolving_invalid_padding="raise", 
                                   output_type="RPK",
