@@ -90,6 +90,7 @@ class CountBwSigTest(unittest.TestCase):
                                   bw_mns=self.__bw_mns,
                                   region_file_type="bed3",
                                   region_file_path=self.__bed3_path,
+                                  single_bw=False,
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
                                   l_pad = 0, 
@@ -116,6 +117,42 @@ class CountBwSigTest(unittest.TestCase):
         
         self.assertEqual(region_info_df.shape, (3, 6))
         self.assertEqual(region_info_df.loc["chr6_170553801_170554802", "name"], ".")
+    
+    def test_main_bed3_input_single_bw(self):
+        job_name = "test_bed3_input_single_bw"
+        args = argparse.Namespace(job_name=job_name,
+                                  sample_names=["sample1"],
+                                  bw_pls=self.__bw_pls, 
+                                  bw_mns=self.__bw_mns,
+                                  region_file_type="bed3",
+                                  region_file_path=self.__bed3_path,
+                                  single_bw=True,
+                                  ignore_strandness=True,
+                                  opath=self.__temp_dir,
+                                  l_pad = 0, 
+                                  r_pad = 0, 
+                                  min_len_after_padding=1,
+                                  method_resolving_invalid_padding="raise", 
+                                  output_type="raw_count",
+                                  )
+        main(args)
+
+        # Test count output
+        count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
+                               index_col=0,
+                               )
+        
+        self.assertEqual(count_df.shape, (3, 1))
+        self.assertEqual(count_df.loc["chr6_170553801_170554802", "sample1"], 348)
+
+        # test region info output
+
+        region_info_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".region_info.csv"), 
+                                     index_col=0,
+                                     )
+        
+        self.assertEqual(region_info_df.shape, (3, 6))
+        self.assertEqual(region_info_df.loc["chr6_170553801_170554802", "name"], ".")
 
     def test_main_bed6_input(self):
         job_name = "test_bed6_input"
@@ -125,6 +162,7 @@ class CountBwSigTest(unittest.TestCase):
                                   bw_mns=self.__bw_mns,
                                   region_file_type="bed6",
                                   region_file_path=self.__bed6_path,
+                                  single_bw=False,
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
                                   l_pad = 0, 
@@ -153,6 +191,7 @@ class CountBwSigTest(unittest.TestCase):
                                   bw_mns=self.__bw_mns,
                                   region_file_type="bed6gene",
                                   region_file_path=self.__bed6gene_path,
+                                  single_bw=False,
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
                                   l_pad = 0, 
@@ -188,6 +227,7 @@ class CountBwSigTest(unittest.TestCase):
                                   bw_mns=self.__bw_mns,
                                   region_file_type="bed6",
                                   region_file_path=self.__bed6_path,
+                                  single_bw=False,
                                   ignore_strandness=True,
                                   opath=self.__temp_dir,
                                   l_pad = 0, 
@@ -207,6 +247,7 @@ class CountBwSigTest(unittest.TestCase):
                                   bw_mns=self.__bw_mns,
                                   region_file_type="bed3",
                                   region_file_path=self.__bed3_path,
+                                  single_bw=False,
                                   ignore_strandness=True,
                                   opath=self.__temp_dir,
                                   l_pad = 0, 
@@ -236,6 +277,7 @@ class CountBwSigTest(unittest.TestCase):
                                   bw_mns=self.__bw_mns,
                                   region_file_type="bed6",
                                   region_file_path=self.__bed6_path,
+                                  single_bw=False,
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
                                   l_pad = -100, 
@@ -264,6 +306,7 @@ class CountBwSigTest(unittest.TestCase):
                                   bw_mns=self.__bw_mns,
                                   region_file_type="bed6",
                                   region_file_path=self.__bed6_path,
+                                  single_bw=False,
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
                                   l_pad = 0, 
@@ -302,6 +345,7 @@ class CountBwSigTest(unittest.TestCase):
                                   bw_mns=self.__bw_mns,
                                   region_file_type="bed6",
                                   region_file_path=self.__bed6_path,
+                                  single_bw=False,
                                   ignore_strandness=False,
                                   opath=self.__temp_dir,
                                   l_pad = -250, 

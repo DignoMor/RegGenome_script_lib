@@ -2,6 +2,7 @@
 
 import os
 import re
+import sys
 import pyBigWig
 import argparse
 import numpy as np
@@ -55,11 +56,18 @@ def set_parser(parser):
     parser.add_argument("--bw_mn", 
                         help="bigwig file for minus strand (must match sample order).", 
                         action="append", 
-                        required=True, 
                         type=str, 
                         dest="bw_mns", 
                         )
     
+    parser.add_argument("--single_bw", 
+                        help="If there is only plus strand bigwig file. If True, bw_mn will be ignored "
+                             "and ignored_strandness will be set to True.", 
+                        type=str2bool, 
+                        dest="single_bw", 
+                        default=False,
+                        )
+
     parser.add_argument("--region_file_path", 
                         help="Path to the region file.", 
                         type=str, 
@@ -150,6 +158,14 @@ def args_check_and_preprocessing(args):
     - l_pad: left padding
     - r_pad: right padding
     '''
+    if args.single_bw:
+        # set bw_mns the same as bw_pls for input consistency
+        args.bw_mns = args.bw_pls
+
+        # ignore strandness
+        if not args.ignore_strandness:
+            raise Exception("Strandness is not ignored while single_bw is set to True.")
+
     if len(args.sample_names) != len(args.bw_pls) or len(args.sample_names) != len(args.bw_mns):
         raise Exception("Number of samples do not match the number of bigwig files.")
     
@@ -209,6 +225,7 @@ def parse_region_input(region_file, file_type):
 
 def count_single_region(bw_pl, bw_mn, chrom, 
                         start, end, strand, 
+                        single_bw=False,
                         output_type="raw_count", 
                         l_pad=0, r_pad=0, 
                         min_len_after_padding=50,
@@ -225,6 +242,7 @@ def count_single_region(bw_pl, bw_mn, chrom,
     - start: start position
     - end: end position
     - strand: strandness, "+" or "-" or "."
+    - single_bw: if there is only plus strand bigwig file
     - output_type: what information is outputted [raw_count, RPK]
     - l_pad: left padding
     - r_pad: right padding
@@ -248,11 +266,17 @@ def count_single_region(bw_pl, bw_mn, chrom,
                                           end, 
                                           ), 
                              ).sum()
-    mn_count = -np.nan_to_num(bw_mn.values(chrom, 
-                                           start, 
-                                           end, 
-                                           ), 
-                              ).sum()
+    if single_bw:
+        mn_count = 0
+
+        if not strand == ".":
+            raise Exception("Strandness is not ignored while single_bw is set to True.")
+    else:
+        mn_count = -np.nan_to_num(bw_mn.values(chrom, 
+                                            start, 
+                                            end, 
+                                            ), 
+                                ).sum()
 
     if strand == "+":
         count = pl_count
@@ -287,7 +311,10 @@ def main(args):
 
     for sample ,bw_pl_path, bw_mn_path in zip(args.sample_names, args.bw_pls, args.bw_mns):
         bw_pl = pyBigWig.open(bw_pl_path)
-        bw_mn = pyBigWig.open(bw_mn_path)
+        if args.single_bw:
+            bw_mn = bw_pl # For compatibility, set bw_mn as the same as bw_pl
+        else:
+            bw_mn = pyBigWig.open(bw_mn_path)
 
         for region_id, region_info in region_df.iterrows():
             count_df.loc[region_id, sample] = count_single_region(bw_pl,
@@ -296,6 +323,7 @@ def main(args):
                                                                     region_info["start"],
                                                                     region_info["end"],
                                                                     region_info["strand"],
+                                                                    args.single_bw,
                                                                     args.output_type,
                                                                     args.l_pad,
                                                                     args.r_pad,
