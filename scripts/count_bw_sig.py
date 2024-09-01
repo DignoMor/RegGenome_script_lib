@@ -258,6 +258,24 @@ class CountBwSig:
         return region_df
 
     @staticmethod
+    def quantify_signal(signal: np.array, output_type: str):
+        '''
+        Quantify the signal. For quantification that is 
+        not mirror-invariant, the signal should run from 
+        the initiation site to the termination site.
+
+        Keyword arguments:
+        - signal: signal to quantify
+        - output_type: what information is outputted [raw_count, RPK]
+        '''
+        if output_type == "raw_count":
+            return np.sum(signal)
+        elif output_type == "RPK":
+            return np.sum(signal) / len(signal) * 1e3
+        else:
+            raise Exception("Unsupported output type ({}).".format(output_type))
+
+    @staticmethod
     def count_single_region(bw_pl, bw_mn, chrom, 
                             start, end, strand, 
                             single_bw=False,
@@ -284,6 +302,12 @@ class CountBwSig:
         - min_len_after_padding: minimum length of the region after padding
         - method_resolving_invalid_padding: method to resolve invalid padding
         '''
+        # Invariants
+        if single_bw:
+            # For single_bw, no strand specificity would be possible
+            assert strand == "."
+
+        # Processing Padding
         if - l_pad - r_pad + min_len_after_padding > end - start:
             if method_resolving_invalid_padding == "fallback":
                 start = start
@@ -296,37 +320,46 @@ class CountBwSig:
             start = start - l_pad
             end = end + r_pad
 
-        pl_count = np.nan_to_num(bw_pl.values(chrom, 
-                                            start, 
-                                            end, 
-                                            ), 
-                                ).sum()
-        if single_bw:
-            mn_count = 0
-
-            if not strand == ".":
-                raise Exception("Strandness is not ignored while single_bw is set to True.")
-        else:
-            mn_count = -np.nan_to_num(bw_mn.values(chrom, 
+        # Count signal
+        if strand == "+":
+            pl_sig = np.nan_to_num(bw_pl.values(chrom, 
                                                 start, 
                                                 end, 
-                                                ), 
-                                    ).sum()
-
-        if strand == "+":
-            count = pl_count
+                                                ))
+            quantification = CountBwSig.quantify_signal(pl_sig, 
+                                                        output_type, 
+                                                        )
         elif strand == "-":
-            count = mn_count
+            mn_sig = -np.nan_to_num(bw_mn.values(chrom, 
+                                                start, 
+                                                end, 
+                                                ))
+        
+            quantification = CountBwSig.quantify_signal(mn_sig, 
+                                                        output_type, 
+                                                        )
         elif strand == ".":
-            count = pl_count + mn_count
+            pl_sig = np.nan_to_num(bw_pl.values(chrom, 
+                                                start, 
+                                                end))
+            
+            quantification = CountBwSig.quantify_signal(pl_sig, 
+                                                       output_type, 
+                                                       )
 
-        if output_type == "raw_count":
-            output = count
-        elif output_type == "RPK":
-            region_length = end - start
-            output = count / region_length * 1000
+            if not single_bw:
+                mn_sig = -np.nan_to_num(bw_mn.values(chrom, 
+                                                    start, 
+                                                    end))
+                mn_sig = np.flip(mn_sig)
+                
+                quantification += CountBwSig.quantify_signal(mn_sig, 
+                                                            output_type, 
+                                                            )
+        else:
+            raise Exception("Invalid strand type.")
 
-        return output
+        return quantification
 
     @staticmethod
     def main(args):
