@@ -10,7 +10,7 @@ import pandas as pd
 from scripts.RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
 
 sys.path.append("scripts")
-from scripts.count_bw_sig import main
+from scripts.count_bw_sig import CountBwSig
 
 class CountBwSigTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -99,7 +99,7 @@ class CountBwSigTest(unittest.TestCase):
                                   method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
                                   )
-        main(args)
+        CountBwSig.main(args)
 
         # Test count output
         count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
@@ -135,7 +135,7 @@ class CountBwSigTest(unittest.TestCase):
                                   method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
                                   )
-        main(args)
+        CountBwSig.main(args)
 
         # Test count output
         count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
@@ -172,7 +172,7 @@ class CountBwSigTest(unittest.TestCase):
                                   output_type="raw_count",
                                   )
         
-        main(args)
+        CountBwSig.main(args)
 
         # Test count output
         count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
@@ -200,7 +200,7 @@ class CountBwSigTest(unittest.TestCase):
                                   method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
                                   )
-        main(args)
+        CountBwSig.main(args)
         # Test count output
         count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
                                index_col=0,
@@ -237,7 +237,7 @@ class CountBwSigTest(unittest.TestCase):
                                   output_type="raw_count",
                                   )
         
-        main(args)
+        CountBwSig.main(args)
 
         job_name_bed3 = "test_bed3"
 
@@ -257,7 +257,7 @@ class CountBwSigTest(unittest.TestCase):
                                   output_type="raw_count",
                                   )
 
-        main(args)
+        CountBwSig.main(args)
 
         bed6_result = pd.read_csv(os.path.join(self.__temp_dir, job_name_bed6 + ".count.csv"), 
                                   index_col=0,
@@ -287,7 +287,7 @@ class CountBwSigTest(unittest.TestCase):
                                   output_type="raw_count",
                                   )
         
-        main(args)
+        CountBwSig.main(args)
 
         # Test count output
         count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
@@ -317,16 +317,16 @@ class CountBwSigTest(unittest.TestCase):
                                   )
         
         with self.assertRaises(Exception):
-            main(args)
+            CountBwSig.main(args)
         
         args.min_len_after_padding = 1
         args.l_pad= -1000
         args.r_pad= -1000
         with self.assertRaises(Exception):
-            main(args)
+            CountBwSig.main(args)
 
         args.method_resolving_invalid_padding = "fallback"
-        main(args)
+        CountBwSig.main(args)
 
         # Test count output
         count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
@@ -355,7 +355,7 @@ class CountBwSigTest(unittest.TestCase):
                                   output_type="RPK",
                                   )
         
-        main(args)
+        CountBwSig.main(args)
 
         # Test count output
         count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".RPK.csv"), 
