@@ -8,6 +8,8 @@ import sys
 import numpy as np
 import pandas as pd
 
+from RGTools.utils import str2bool
+
 class CountTableTool:
     @staticmethod
     def main(args):
@@ -96,6 +98,13 @@ class CountTableTool:
                             required=True, 
                             dest="gene_id_col", 
                             )
+        
+        parser.add_argument("--sort", 
+                            help="Sort by new index.", 
+                            dest="sort",
+                            default=False,
+                            type=str2bool,
+                            )
 
     @staticmethod
     def read_input_df(input_path):
@@ -154,6 +163,10 @@ class CountTableTool:
                                        drop=True, 
                                        inplace=False, 
                                        )
+        
+        if args.sort:
+            output_df = output_df.sort_index()
+
         CountTableTool.write_output_df(output_df, args.opath)
 
         return None
