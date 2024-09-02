@@ -19,6 +19,8 @@ class CountTableTool:
             CountTableTool.cat_table_main(args)
         elif args.subcommand == "substitute_gene_id":
             CountTableTool.substitute_gene_id_main(args)
+        elif args.subcommand == "divide_table":
+            CountTableTool.divide_table_main(args)
         else:
             raise ValueError("Invalid subcommand.")
 
@@ -168,6 +170,13 @@ class CountTableTool:
         return None
 
     @staticmethod
+    def check_column_match(df1, df2):
+        if not (df1.columns == df2.columns).all():
+            raise ValueError("Column mismatch.")
+
+        return None
+
+    @staticmethod
     def per_million_normalization_main(args):
         input_df = CountTableTool.read_input_df(args.inpath)
         output_df = input_df / input_df.sum(axis=0) * 1e6
@@ -211,6 +220,19 @@ class CountTableTool:
     def divide_table_main(args):
         numerator_df = CountTableTool.read_input_df(args.inpath_numerator)
         denominator_df = CountTableTool.read_input_df(args.inpath_denominator)
+
+        CountTableTool.check_index_match(numerator_df, denominator_df)
+        CountTableTool.check_column_match(numerator_df, denominator_df)
+
+        output_df = pd.DataFrame(np.nan,
+                                 index=numerator_df.index,
+                                 columns=numerator_df.columns,
+                                 )
+        for c in output_df.columns:
+            logical_pass_filter = (denominator_df[c] >= args.min_denominator) & (numerator_df[c] >= args.min_numerator)
+            output_df.loc[logical_pass_filter, c] = numerator_df.loc[logical_pass_filter, c] / denominator_df.loc[logical_pass_filter, c]
+        
+        CountTableTool.write_output_df(output_df, args.opath)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="Count Table Tool.")
