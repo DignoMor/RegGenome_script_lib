@@ -15,6 +15,8 @@ class CountTableTool:
             CountTableTool.per_million_normalization_main(args)
         elif args.subcommand == "cat_table":
             CountTableTool.cat_table_main(args)
+        elif args.subcommand == "substitute_gene_id":
+            CountTableTool.substitute_gene_id_main(args)
         else:
             raise ValueError("Invalid subcommand.")
 
@@ -33,6 +35,12 @@ class CountTableTool:
                                                  )
         
         CountTableTool.set_parser_cat_table(parser_cat_table)
+
+        parser_substitute_gene_id = subparsers.add_parser("substitute_gene_id",
+                                                          help="Substitute gene ID.",
+                                                          )
+        
+        CountTableTool.set_parser_substitute_gene_id(parser_substitute_gene_id)
 
     @staticmethod
     def set_parser_per_million_normalization(parser):
@@ -64,8 +72,40 @@ class CountTableTool:
                             )
 
     @staticmethod
+    def set_parser_substitute_gene_id(parser):
+        parser.add_argument("--inpath", "-I", 
+                            help="Input path for count table.", 
+                            required=True, 
+                            dest="inpath", 
+                            )
+        
+        parser.add_argument("--opath", "-O", 
+                            help="Output path.", 
+                            default="stdout", 
+                            dest="opath", 
+                            )
+
+        parser.add_argument("--region_info_path", 
+                            help="Path to region info csv.", 
+                            required=True, 
+                            dest="region_info_path", 
+                            )
+        
+        parser.add_argument("--gene_id_col",
+                            help="Column name for gene ID.", 
+                            required=True, 
+                            dest="gene_id_col", 
+                            )
+
+    @staticmethod
     def read_input_df(input_path):
         return pd.read_csv(input_path, 
+                           index_col=0, 
+                           )
+
+    @staticmethod
+    def read_region_info_df(region_info_path):
+        return pd.read_csv(region_info_path, 
                            index_col=0, 
                            )
 
@@ -75,6 +115,13 @@ class CountTableTool:
             output_df.to_csv(sys.stdout)
         else:
             output_df.to_csv(opath)
+
+    @staticmethod
+    def check_index_match(df1, df2):
+        if not (df1.index == df2.index).all():
+            raise ValueError("Index mismatch.")
+
+        return None
 
     @staticmethod
     def per_million_normalization_main(args):
@@ -92,6 +139,22 @@ class CountTableTool:
         
         if not (output_df.shape[0] == input_dfs[0].shape[0]):
             raise ValueError("Index mismatch.")
+
+        return None
+    
+    @staticmethod
+    def substitute_gene_id_main(args):
+        input_df = CountTableTool.read_input_df(args.inpath)
+        region_info_df = CountTableTool.read_region_info_df(args.region_info_path)
+
+        CountTableTool.check_index_match(input_df, region_info_df)
+
+        new_ids = region_info_df[args.gene_id_col].values
+        output_df = input_df.set_index(new_ids, 
+                                       drop=True, 
+                                       inplace=False, 
+                                       )
+        CountTableTool.write_output_df(output_df, args.opath)
 
         return None
 
