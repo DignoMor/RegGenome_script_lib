@@ -44,6 +44,12 @@ class CountTableTool:
         
         CountTableTool.set_parser_substitute_gene_id(parser_substitute_gene_id)
 
+        parser_divide_table = subparsers.add_parser("divide_table",
+                                                    help="Divide operation between count tables.",
+                                                    )
+        
+        CountTableTool.set_parser_divide_table(parser_divide_table)
+
     @staticmethod
     def set_parser_per_million_normalization(parser):
         parser.add_argument("--inpath", "-I", 
@@ -70,6 +76,35 @@ class CountTableTool:
         parser.add_argument("--opath", 
                             help="Output path.", 
                             default="stdout", 
+                            dest="opath",
+                            )
+
+    def set_parser_divide_table(parser):
+        parser.add_argument("--inpath_numerator",
+                            help="Input paths for count tables as numerators.",
+                            required=True,
+                            )
+
+        parser.add_argument("--inpath_denominator",
+                            help="Input paths for count tables as denominators.",
+                            required=True,
+                            )
+        
+        parser.add_argument("--min_numerator",
+                            help="Minimum value for numerator. Filtered values will be set as NA.",
+                            default=0,
+                            type=float,
+                            )
+
+        parser.add_argument("--min_denominator",
+                            help="Minimum value for denominator. Filtered values will be set as NA.",
+                            default=0,
+                            type=float,
+                            )
+
+        parser.add_argument("--opath",
+                            help="Output path.",
+                            default="stdout",
                             dest="opath",
                             )
 
@@ -139,6 +174,7 @@ class CountTableTool:
         CountTableTool.write_output_df(output_df, args.opath)
         return None
     
+    @staticmethod
     def cat_table_main(args):
         input_dfs = [CountTableTool.read_input_df(inpath) for inpath in args.inpaths]
         output_df = pd.concat(input_dfs, axis=1)
@@ -170,6 +206,11 @@ class CountTableTool:
         CountTableTool.write_output_df(output_df, args.opath)
 
         return None
+
+    @staticmethod
+    def divide_table_main(args):
+        numerator_df = CountTableTool.read_input_df(args.inpath_numerator)
+        denominator_df = CountTableTool.read_input_df(args.inpath_denominator)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="Count Table Tool.")
