@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 import argparse
-import RGTools
 import sys
 
 import pandas as pd
 
 from RGTools.BedTable import BedTable6, BedTable6Plus
+from RGTools.GTF_utils import GTFHandle
 
 def set_parser(parser):
     parser.add_argument("--gtf_path", "-g", 
@@ -86,7 +86,7 @@ def main(args):
         search_key, search_value = key_value_pair_str_parser(key_value_str)
         additional_key_value_dict[search_key] = search_value
 
-    gtf_file_handle = RGTools.GTFHandle(gtf_path=args.gtf_path)
+    gtf_file_handle = GTFHandle(gtf_path=args.gtf_path)
 
     # filter the gtf_file
     for search_key, search_value in general_key_value_dict.items():
