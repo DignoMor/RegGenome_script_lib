@@ -6,9 +6,30 @@ import re
 import pandas as pd
 import numpy as np
 
-from RGTools.BedTable import BedTable6
+from RGTools.BedTable import BedTable6, BedTable6Plus
 
 class Bed2TSSBED:
+    @staticmethod
+    def BedTable6Gene():
+        bt = BedTable6Plus(extra_column_names=["gene_symbol"], 
+                           extra_column_dtype=[str], 
+                           )
+        return bt
+
+    @staticmethod
+    def get_region_file_type2class_dict():
+        return {"bed6": BedTable6, 
+                "bed6gene": Bed2TSSBED.BedTable6Gene}
+    
+    @staticmethod
+    def read_input(input_file, region_file_type):
+        if region_file_type not in Bed2TSSBED.get_region_file_type2class_dict().keys():
+            raise Exception("Unrecognized region file type: {}".format(region_file_type))
+        
+        region_table = Bed2TSSBED.get_region_file_type2class_dict()[region_file_type]()
+        region_table.load_from_file(input_file)
+        
+        return region_table
 
     @staticmethod
     def set_parser(parser):
@@ -25,11 +46,16 @@ class Bed2TSSBED:
         parser.add_argument("--window_size", "-w",
                             help="The window size [250-250]. The default is to return 501 bp window with tss in middle.", 
                             default="250-250")
+        
+        parser.add_argument("--region_file_type", 
+                            help="The type of region file. [bed6] ({})".format(", ".join(Bed2TSSBED.get_region_file_type2class_dict().keys())), 
+                            default="bed6",
+                            type=str
+                            )
 
     @staticmethod
     def main(args):
-        input_bed_table = BedTable6()
-        input_bed_table.load_from_file(args.bed_in)
+        input_bed_table = Bed2TSSBED.read_input(args.bed_in, args.region_file_type)
         
         # check strand information
         for strand in np.unique(input_bed_table.get_region_strands()):
@@ -43,20 +69,22 @@ class Bed2TSSBED:
         l_pad = int(match.group(1))
         r_pad = int(match.group(2))
         
-        tss_list = input_bed_table.get_start_locs()
-        tss_list[input_bed_table.get_region_strands()=="-"] = input_bed_table.apply_logical_filter(input_bed_table.get_region_strands()=="-").get_end_locs() - 1
+        output_bt = input_bed_table._clone_empty()
+        output_df = pd.DataFrame(columns=output_bt.column_names)
 
-        output_bed_df = pd.DataFrame(columns=["chrom", "start", "end", "name", "score", "strand"])
-        output_bed_df["chrom"] = input_bed_table.get_chrom_names()
-        output_bed_df["start"] = [t - l_pad for t in tss_list] # bed is 0-based
-        output_bed_df["end"] = [t + r_pad + 1 for t in tss_list]
-        output_bed_df["name"] = input_bed_table.get_region_names()
-        output_bed_df["score"] = input_bed_table.get_region_scores()  
-        output_bed_df["strand"] = input_bed_table.get_region_strands()
+        for region in input_bed_table.iter_regions():
+            if region["strand"] == "+":
+                tss = region["start"]
+            elif region["strand"] == "-":
+                tss = region["end"] - 1
+            
+            output_region_dict = region.to_dict()
+            output_region_dict["start"] = tss - l_pad
+            output_region_dict["end"] = tss + r_pad + 1
+            output_df.loc[len(output_df)] = output_region_dict
 
-        output_bed_table = BedTable6()
-        output_bed_table.load_from_dataframe(output_bed_df)
-        output_bed_table.write(args.bed_out)
+        output_bt.load_from_dataframe(output_df)
+        output_bt.write(args.bed_out)
 
 
 if __name__ == "__main__":

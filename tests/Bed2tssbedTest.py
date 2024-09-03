@@ -42,9 +42,24 @@ class Bed2tssbedTest(unittest.TestCase):
 
         self.__bed_in = os.path.join(self.__data_dir, "test.bed")
         self.__bed_out = os.path.join(self.__data_dir, "test.tss.bed")
+        self.__bed_in_bed6gene = os.path.join(self.__data_dir, "test.bed6gene")
+        self.__bed_out_bed6gene = os.path.join(self.__data_dir, "test.tss.bed6gene")
         
         self.__test_bed_table.write(self.__bed_in)
 
+        # test for bed6gene
+        self.__test_data_bed6gene = self.__test_data.copy()
+        self.__test_ans_bed6gene = self.__test_ans.copy()
+
+        self.__test_data_bed6gene["gene_symbol"] = ["gene1", "gene2", "gene3"]
+        self.__test_ans_bed6gene["gene_symbol"] = ["gene1", "gene2", "gene3"]
+
+        self.__test_bt_bed6gene = Bed2TSSBED.BedTable6Gene()
+        self.__test_bt_bed6gene.load_from_dataframe(self.__test_data_bed6gene)
+        self.__ans_bt_bed6gene = Bed2TSSBED.BedTable6Gene()
+        self.__ans_bt_bed6gene.load_from_dataframe(self.__test_ans_bed6gene)
+
+        self.__test_bt_bed6gene.write(self.__bed_in_bed6gene)
         
         return super().setUp()
 
@@ -53,11 +68,17 @@ class Bed2tssbedTest(unittest.TestCase):
             shutil.rmtree(self.__data_dir)
         return super().tearDown()
     
-    def test_bed2tssbed(self):
+    def get_simple_args(self):
         args = argparse.Namespace(bed_in=self.__bed_in,
                                   bed_out=self.__bed_out,
                                   window_size="0-0",
+                                  region_file_type="bed6",
                                   )
+        
+        return args
+    
+    def test_bed2tssbed(self):
+        args = self.get_simple_args()
 
         Bed2TSSBED.main(args)
 
@@ -65,6 +86,20 @@ class Bed2tssbedTest(unittest.TestCase):
         self.__out_bed_table.load_from_file(self.__bed_out)
 
         self.assertTrue((self.__out_bed_table.to_dataframe().values == self.__ans_bed_table.to_dataframe().values).all())
+    
+    def test_bed6gene_io(self):
+        args = self.get_simple_args()
+
+        args.region_file_type = "bed6gene"
+        args.bed_in = self.__bed_in_bed6gene
+        args.bed_out = self.__bed_out_bed6gene
+
+        Bed2TSSBED.main(args)
+
+        self.__out_bt_bed6gene = Bed2TSSBED.BedTable6Gene()
+        self.__out_bt_bed6gene.load_from_file(args.bed_out)
+
+        self.assertTrue((self.__out_bt_bed6gene.to_dataframe().values == self.__ans_bt_bed6gene.to_dataframe().values).all())
     
 if __name__ == "__main__":
     unittest.main()
