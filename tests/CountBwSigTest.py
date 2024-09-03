@@ -215,7 +215,7 @@ class CountBwSigTest(unittest.TestCase):
                                      index_col=0,
                                      )
         self.assertEqual(region_info_df.shape, (3, 7))
-        self.assertEqual(region_info_df.loc["chr6_170553801_170554802", "gene_name"], "gene1")
+        self.assertEqual(region_info_df.loc["chr6_170553801_170554802", "gene_symbol"], "gene1")
 
     def test_main_strandness_handle(self):
         # Test ignore strandness for bed6

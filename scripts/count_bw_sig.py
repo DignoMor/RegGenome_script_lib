@@ -37,7 +37,7 @@ class CountBwSig:
         Helper function to return a BedTable6Plus object
         that can load bed6gene annotations.
         '''
-        bt = BedTable6Plus(extra_column_names=["gene_name"], 
+        bt = BedTable6Plus(extra_column_names=["gene_symbol"], 
                         extra_column_dtype=[str], 
                         )
 
