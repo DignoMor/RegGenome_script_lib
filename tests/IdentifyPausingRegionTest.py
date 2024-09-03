@@ -35,7 +35,8 @@ class IdentifyPausingRegionTest(unittest.TestCase):
                                   bw_mn=self.__bw_mn_path, 
                                   target_size=250,
                                   search_step_size=10,
-                                  opath=os.path.join(self.__test_folder, "pausing_region.bed")
+                                  opath=os.path.join(self.__test_folder, "pausing_region.bed"), 
+                                  region_file_type="bed6",
                                   )
 
     def test_output_size(self):

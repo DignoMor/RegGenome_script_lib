@@ -5,9 +5,31 @@ import pyBigWig
 import pandas as pd
 import numpy as np
 
-from RGTools.BedTable import BedTable6
+from RGTools.BedTable import BedTable6, BedTable6Plus
 
 class IdentifyPausingRegion:
+    @staticmethod
+    def BedTable6Gene():
+        bt=BedTable6Plus(extra_column_names=["gene_symbol"],
+                         extra_column_dtype=[str], 
+                         )
+        return bt
+
+    @staticmethod
+    def get_region_file_types2class():
+        return {
+            "bed6": BedTable6, 
+            "bed6gene": IdentifyPausingRegion.BedTable6Gene,
+        }
+    
+    @staticmethod
+    def load_region_file(inpath, file_type):
+        file_type_class = IdentifyPausingRegion.get_region_file_types2class()[file_type]
+        bt = file_type_class()
+        bt.load_from_file(inpath)
+
+        return bt
+
     @staticmethod
     def set_parser(parser):
         parser.add_argument("--tss_bed", 
@@ -53,6 +75,12 @@ class IdentifyPausingRegion:
                             help="Input path for minus strand bigwig file for PROseq assay.", 
                             type=str,
                             required=True,
+                            )
+        
+        parser.add_argument("--region_file_type. Options: {}".format(", ".join(IdentifyPausingRegion.get_region_file_types2class().keys())),
+                            help="File type for region file.", 
+                            default="bed6",
+                            type=str,
                             )
         
         parser.add_argument("--opath",
@@ -150,13 +178,15 @@ class IdentifyPausingRegion:
 
     @staticmethod
     def main(args):
-        tss_bt = BedTable6()
-        tss_bt.load_from_file(args.tss_bed)
+        tss_bt = IdentifyPausingRegion.load_region_file(args.tss_bed, 
+                                                        args.region_file_type,
+                                                        )
 
         bw_pl = pyBigWig.open(args.bw_pl)
         bw_mn = pyBigWig.open(args.bw_mn)
 
-        output_df = pd.DataFrame(columns=["chrom", "start", "end", "name", "score", "strand"])
+        output_bt = tss_bt._clone_empty()
+        output_df = pd.DataFrame(columns=output_bt.column_names)
 
         for region in tss_bt.iter_regions():
             search_start = region["start"] - args.l_pad
@@ -170,17 +200,14 @@ class IdentifyPausingRegion:
                                                                                 target_size=args.target_size,
                                                                                 search_step_size=args.search_step_size,
                                                                                 )
-            
-            output_df.loc[len(output_df)] = {
-                "chrom": region["chrom"],
-                "start": result_start,
-                "end": result_end,
-                "name": region["name"],
-                "score": rpk,
-                "strand": region["strand"],
-            }
 
-        output_bt = BedTable6()
+            output_entry = region.to_dict()
+            output_entry["start"] = result_start
+            output_entry["end"] = result_end
+            output_entry["score"] = rpk
+
+            output_df.loc[len(output_df)] = output_entry
+
         output_bt.load_from_dataframe(output_df)
         output_bt.write(args.opath)
 
