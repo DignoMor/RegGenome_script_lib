@@ -8,7 +8,7 @@ import os
 import pandas as pd
 
 sys.path.append("scripts")
-from scripts.bed2tssbed import bed2tssbed
+from scripts.bed2tssbed import Bed2TSSBED
 from scripts.RGTools.BedTable import BedTable3, BedTable6
 
 class Bed2tssbedTest(unittest.TestCase):
@@ -59,7 +59,7 @@ class Bed2tssbedTest(unittest.TestCase):
                                   window_size="0-0",
                                   )
 
-        bed2tssbed(args)
+        Bed2TSSBED.main(args)
 
         self.__out_bed_table = BedTable6()
         self.__out_bed_table.load_from_file(self.__bed_out)
