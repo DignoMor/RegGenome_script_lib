@@ -77,8 +77,9 @@ class IdentifyPausingRegion:
                             required=True,
                             )
         
-        parser.add_argument("--region_file_type. Options: {}".format(", ".join(IdentifyPausingRegion.get_region_file_types2class().keys())),
-                            help="File type for region file.", 
+        parser.add_argument("--region_file_type", 
+                            help="File type for region file. "
+                            "Options: {}".format(", ".join(IdentifyPausingRegion.get_region_file_types2class().keys())), 
                             default="bed6",
                             type=str,
                             )

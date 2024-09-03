@@ -17,9 +17,19 @@ class IdentifyPausingRegionTest(unittest.TestCase):
         self.__bw_mn_path = "sample_data/ENCFF182TPF.mn.bigWig"
 
         self.__test_folder = "identify_pausing_region_test"
+        self.__tss_bed6gene_path = os.path.join(self.__test_folder, "gencode.v37.protein_coding_gene_body.tss.chr2.bed6gene")
 
         if not os.path.exists(self.__test_folder):
             os.makedirs(self.__test_folder)
+
+        # make bed6gene file
+        bed6bt = BedTable6()
+        bed6bt.load_from_file(self.__tss_annotation_path)
+        bed6gene_df = bed6bt.to_dataframe()
+        bed6gene_df["gene_symbol"] = bed6gene_df["name"].apply(lambda x: x.split(".")[0])
+        bed6gene_bt = IdentifyPausingRegion.BedTable6Gene()
+        bed6gene_bt.load_from_dataframe(bed6gene_df)
+        bed6gene_bt.write(self.__tss_bed6gene_path)
 
         return super().setUp()
 
@@ -60,3 +70,18 @@ class IdentifyPausingRegionTest(unittest.TestCase):
         result_bt.load_from_file(args.opath)
         result_df = result_bt.to_dataframe()
         result_df.loc[result_df["name"] == "ENSG00000182551.14", "score"] == 728
+    
+    def test_bed6gene_io(self):
+
+        args = self.get_simple_args()
+
+        tss_bt = IdentifyPausingRegion.BedTable6Gene()
+        tss_bt.load_from_file(self.__tss_bed6gene_path)
+
+        IdentifyPausingRegion.main(args)
+
+        result_bt = IdentifyPausingRegion.BedTable6Gene()
+        result_bt.load_from_file(args.opath)
+
+        self.assertTrue((tss_bt.get_region_extra_column("gene_symbol") == result_bt.get_region_extra_column("gene_symbol")).all())
+
