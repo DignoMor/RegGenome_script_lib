@@ -336,6 +336,15 @@ class CountBwSigTest(unittest.TestCase):
         self.assertEqual(count_df.shape, (3, 1))
 
         self.assertEqual(count_df.loc["chr6_170553801_170554802", "sample1"], 348)
+
+        args.method_resolving_invalid_padding = "drop"
+        CountBwSig.main(args)
+
+        # Test count output
+        count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
+                               index_col=0,
+                               )
+        self.assertEqual(count_df.shape, (0, 1))
     
     def test_output_type(self):
         job_name = "test_output_type"

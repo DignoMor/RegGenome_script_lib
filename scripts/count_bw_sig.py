@@ -142,7 +142,8 @@ class CountBwSig:
                             help="Method to resolve invalid padding. [raise]"
                                 "Options: "
                                 "- raise: raise an exception, "
-                                "- fallback: give up on padding.", 
+                                "- fallback: give up on padding."
+                                "- drop: drop the region.", 
                             type=str, 
                             default="raise", 
                             dest="method_resolving_invalid_padding", 
@@ -215,7 +216,7 @@ class CountBwSig:
         if not args.min_len_after_padding >= 1:
             raise Exception("Minimum length after padding should be positive.")
 
-        if not args.method_resolving_invalid_padding in ["raise", "fallback"]:
+        if not args.method_resolving_invalid_padding in ["raise", "fallback", "drop"]:
             raise Exception("Unsupported method to resolve invalid padding ({}).".format(args.method_resolving_invalid_padding))
 
         if args.output_type == "PausingIndex" and (args.l_pad < 0 or args.r_pad < 0):
@@ -314,6 +315,9 @@ class CountBwSig:
                 end = end
             elif method_resolving_invalid_padding == "raise":
                 raise Exception("Padding is larger than the region ({}:{:d}-{:d}).".format(chrom, start, end))
+            elif method_resolving_invalid_padding == "drop":
+                sys.stderr.write("Padding is larger than the region ({}:{:d}-{:d}). Dropping the region.\n".format(chrom, start, end))
+                return np.nan
             else:
                 raise Exception("Unsupported method to resolve invalid padding ({}).".format(method_resolving_invalid_padding))
         else: 
@@ -401,6 +405,12 @@ class CountBwSig:
             
             bw_pl.close()
             bw_mn.close()
+
+        count_df.dropna(inplace=True,
+                        axis=0,
+                        )
+        
+        region_df = region_df.loc[count_df.index]
 
         CountBwSig.write_output_table(count_df, region_df, args.output_type, args.opath, args.job_name)
 
