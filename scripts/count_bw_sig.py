@@ -42,6 +42,31 @@ class CountBwSig:
                         )
 
         return bt
+    
+    @staticmethod
+    def get_region_id_types():
+        '''
+        Return the list of region id types.
+        '''
+        return ["chrom_start_end", "name", "chrom_start_end_name"]
+
+    @staticmethod 
+    def get_region_id_converter(region_id_type):
+        '''
+        Return a function that converts a region series to a region id 
+        based on the id type.
+
+        Keyword arguments:
+        - region_id_type: type of the region id
+        '''
+        if region_id_type == "chrom_start_end":
+            return lambda x: x["chrom"] + "_" + str(x["start"]) + "_" + str(x["end"])
+        elif region_id_type == "name":
+            return lambda x: x["name"]
+        elif region_id_type == "chrom_start_end_name":
+            return lambda x: x["chrom"] + "_" + str(x["start"]) + "_" + str(x["end"]) + "_" + x["name"]
+        else:
+            raise Exception("Unsupported region id type ({}).".format(region_id_type))
 
     
     @staticmethod
@@ -156,6 +181,14 @@ class CountBwSig:
                             default="raw_count",
                             dest="output_type",
                             )
+        
+        parser.add_argument("--region_id_type", 
+                            help="Type of the region id. [chrom_start_end] "
+                                 "(Options: {})".format(", ".join(CountBwSig.get_region_id_types())),
+                            type=str,
+                            default="chrom_start_end",
+                            dest="region_id_type",
+                            )
 
     @staticmethod
     def write_output_table(count_df, region_df, output_type, opath, job_name):
@@ -221,10 +254,13 @@ class CountBwSig:
 
         if args.output_type == "PausingIndex" and (args.l_pad < 0 or args.r_pad < 0):
             sys.stderr.write("Calculating pausing index with negative padding is not recommended.\n")
+        
+        if not args.region_id_type in CountBwSig.get_region_id_types():
+            raise Exception("Unsupported region id type ({}).".format(args.region_id_type))
 
         return args
 
-    def parse_region_input(region_file, file_type):
+    def parse_region_input(region_file, file_type, region_id_type):
         '''
         Parse the input file and return a dataframe include region info.
         The returned df could have type-specific additional information that can be 
@@ -254,7 +290,7 @@ class CountBwSig:
         #TODO: Switch from df to BedTables
         region_df = region_bed_table.to_dataframe()
         region_df.fillna(".", inplace=True)
-        region_df.index = region_df["chrom"] + "_" + region_df["start"].transform(str) + "_" + region_df["end"].transform(str)
+        region_df.index = region_df.agg(CountBwSig.get_region_id_converter(region_id_type), axis=1)
 
         return region_df
 
@@ -371,6 +407,7 @@ class CountBwSig:
 
         region_df = CountBwSig.parse_region_input(args.region_file_path, 
                                                   args.region_file_type, 
+                                                  args.region_id_type, 
                                                   )
 
         if args.ignore_strandness:

@@ -82,13 +82,15 @@ class CountBwSigTest(unittest.TestCase):
 
         return super().tearDown()
 
-    def test_main_bed3_input(self):
-        job_name = "test_bed3_input"
-        args = argparse.Namespace(job_name=job_name,
+    def get_simple_args(self, job_name):
+        '''
+        Get simple args for testing.
+        '''
+        return argparse.Namespace(job_name=job_name,
                                   sample_names=["sample1"],
                                   bw_pls=self.__bw_pls, 
                                   bw_mns=self.__bw_mns,
-                                  region_file_type="bed3",
+                                  region_file_type="bed6",
                                   region_file_path=self.__bed3_path,
                                   single_bw=False,
                                   ignore_strandness=False,
@@ -98,7 +100,12 @@ class CountBwSigTest(unittest.TestCase):
                                   min_len_after_padding=1,
                                   method_resolving_invalid_padding="raise", 
                                   output_type="raw_count",
+                                  region_id_type="chrom_start_end", 
                                   )
+
+    def test_main_bed3_input(self):
+        job_name = "test_bed3_input"
+        args = self.get_simple_args(job_name)
         CountBwSig.main(args)
 
         # Test count output
@@ -120,21 +127,9 @@ class CountBwSigTest(unittest.TestCase):
     
     def test_main_bed3_input_single_bw(self):
         job_name = "test_bed3_input_single_bw"
-        args = argparse.Namespace(job_name=job_name,
-                                  sample_names=["sample1"],
-                                  bw_pls=self.__bw_pls, 
-                                  bw_mns=self.__bw_mns,
-                                  region_file_type="bed3",
-                                  region_file_path=self.__bed3_path,
-                                  single_bw=True,
-                                  ignore_strandness=True,
-                                  opath=self.__temp_dir,
-                                  l_pad = 0, 
-                                  r_pad = 0, 
-                                  min_len_after_padding=1,
-                                  method_resolving_invalid_padding="raise", 
-                                  output_type="raw_count",
-                                  )
+        args = self.get_simple_args(job_name)
+        args.single_bw = True
+        args.ignore_strandness = True
         CountBwSig.main(args)
 
         # Test count output
@@ -156,22 +151,8 @@ class CountBwSigTest(unittest.TestCase):
 
     def test_main_bed6_input(self):
         job_name = "test_bed6_input"
-        args = argparse.Namespace(job_name=job_name,
-                                  sample_names=["sample1"],
-                                  bw_pls=self.__bw_pls, 
-                                  bw_mns=self.__bw_mns,
-                                  region_file_type="bed6",
-                                  region_file_path=self.__bed6_path,
-                                  single_bw=False,
-                                  ignore_strandness=False,
-                                  opath=self.__temp_dir,
-                                  l_pad = 0, 
-                                  r_pad = 0, 
-                                  min_len_after_padding=1,
-                                  method_resolving_invalid_padding="raise", 
-                                  output_type="raw_count",
-                                  )
-        
+        args = self.get_simple_args(job_name)
+        args.region_file_path = self.__bed6_path
         CountBwSig.main(args)
 
         # Test count output
@@ -185,21 +166,9 @@ class CountBwSigTest(unittest.TestCase):
     
     def test_main_bed6gene_input(self):
         job_name = "test_bed6gene_input"
-        args = argparse.Namespace(job_name=job_name,
-                                  sample_names=["sample1"],
-                                  bw_pls=self.__bw_pls, 
-                                  bw_mns=self.__bw_mns,
-                                  region_file_type="bed6gene",
-                                  region_file_path=self.__bed6gene_path,
-                                  single_bw=False,
-                                  ignore_strandness=False,
-                                  opath=self.__temp_dir,
-                                  l_pad = 0, 
-                                  r_pad = 0, 
-                                  min_len_after_padding=1,
-                                  method_resolving_invalid_padding="raise", 
-                                  output_type="raw_count",
-                                  )
+        args = self.get_simple_args(job_name)
+        args.region_file_path = self.__bed6gene_path
+        args.region_file_type = "bed6gene"
         CountBwSig.main(args)
         # Test count output
         count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
@@ -221,41 +190,17 @@ class CountBwSigTest(unittest.TestCase):
         # Test ignore strandness for bed6
         job_name_bed6 = "test_bed6_ignore_strandness"
 
-        args = argparse.Namespace(job_name=job_name_bed6,
-                                  sample_names=["sample1"],
-                                  bw_pls=self.__bw_pls, 
-                                  bw_mns=self.__bw_mns,
-                                  region_file_type="bed6",
-                                  region_file_path=self.__bed6_path,
-                                  single_bw=False,
-                                  ignore_strandness=True,
-                                  opath=self.__temp_dir,
-                                  l_pad = 0, 
-                                  r_pad = 0, 
-                                  min_len_after_padding=1,
-                                  method_resolving_invalid_padding="raise", 
-                                  output_type="raw_count",
-                                  )
-        
+        args = self.get_simple_args(job_name_bed6)
+        args.region_file_path = self.__bed6_path
+        args.ignore_strandness = True
+
         CountBwSig.main(args)
 
         job_name_bed3 = "test_bed3"
 
-        args = argparse.Namespace(job_name=job_name_bed3,
-                                  sample_names=["sample1"],
-                                  bw_pls=self.__bw_pls, 
-                                  bw_mns=self.__bw_mns,
-                                  region_file_type="bed3",
-                                  region_file_path=self.__bed3_path,
-                                  single_bw=False,
-                                  ignore_strandness=True,
-                                  opath=self.__temp_dir,
-                                  l_pad = 0, 
-                                  r_pad = 0, 
-                                  min_len_after_padding=1,
-                                  method_resolving_invalid_padding="raise", 
-                                  output_type="raw_count",
-                                  )
+        args = self.get_simple_args(job_name_bed3)
+        args.region_file_path = self.__bed3_path
+        args.ignore_strandness = True
 
         CountBwSig.main(args)
 
@@ -271,22 +216,12 @@ class CountBwSigTest(unittest.TestCase):
 
     def test_padding(self):
         job_name = "test_padding"
-        args = argparse.Namespace(job_name=job_name,
-                                  sample_names=["sample1"],
-                                  bw_pls=self.__bw_pls, 
-                                  bw_mns=self.__bw_mns,
-                                  region_file_type="bed6",
-                                  region_file_path=self.__bed6_path,
-                                  single_bw=False,
-                                  ignore_strandness=False,
-                                  opath=self.__temp_dir,
-                                  l_pad = -100, 
-                                  r_pad = -100, 
-                                  min_len_after_padding=1,
-                                  method_resolving_invalid_padding="raise", 
-                                  output_type="raw_count",
-                                  )
-        
+        args = self.get_simple_args(job_name)
+        args.region_file_path = self.__bed6_path
+        args.region_file_type = "bed6"
+        args.l_pad = -100
+        args.r_pad = -100
+
         CountBwSig.main(args)
 
         # Test count output
@@ -300,22 +235,11 @@ class CountBwSigTest(unittest.TestCase):
 
     def test_resolving_invalid_padding(self):
         job_name = "test_resolving_invalid_padding"
-        args = argparse.Namespace(job_name=job_name,
-                                  sample_names=["sample1"],
-                                  bw_pls=self.__bw_pls, 
-                                  bw_mns=self.__bw_mns,
-                                  region_file_type="bed6",
-                                  region_file_path=self.__bed6_path,
-                                  single_bw=False,
-                                  ignore_strandness=False,
-                                  opath=self.__temp_dir,
-                                  l_pad = 0, 
-                                  r_pad = 0, 
-                                  min_len_after_padding=10000,
-                                  method_resolving_invalid_padding="raise", 
-                                  output_type="raw_count",
-                                  )
-        
+        args = self.get_simple_args(job_name)
+        args.region_file_path = self.__bed6_path
+        args.region_file_type = "bed6"
+        args.min_len_after_padding = 10000
+
         with self.assertRaises(Exception):
             CountBwSig.main(args)
         
@@ -348,22 +272,11 @@ class CountBwSigTest(unittest.TestCase):
     
     def test_output_type(self):
         job_name = "test_output_type"
-        args = argparse.Namespace(job_name=job_name,
-                                  sample_names=["sample1"],
-                                  bw_pls=self.__bw_pls, 
-                                  bw_mns=self.__bw_mns,
-                                  region_file_type="bed6",
-                                  region_file_path=self.__bed6_path,
-                                  single_bw=False,
-                                  ignore_strandness=False,
-                                  opath=self.__temp_dir,
-                                  l_pad = -250, 
-                                  r_pad = -250,
-                                  min_len_after_padding=1,
-                                  method_resolving_invalid_padding="raise", 
-                                  output_type="RPK",
-                                  )
-        
+        args = self.get_simple_args(job_name)
+        args.region_file_path = self.__bed6_path
+        args.region_file_type = "bed6"
+        args.output_type = "RPK"
+
         CountBwSig.main(args)
 
         # Test count output
@@ -374,3 +287,23 @@ class CountBwSigTest(unittest.TestCase):
         self.assertEqual(count_df.shape, (3, 1))
 
         self.assertTrue(count_df.loc["chr6_170553801_170554802", "sample1"] - 680.64 < 0.01)
+    
+    def test_region_id_handling(self):
+        job_name = "test_region_id_handling"
+
+        args = self.get_simple_args(job_name)
+        args.region_file_path = self.__bed6_path
+        args.region_file_type = "bed6"
+        args.region_id_type = "name"
+
+        CountBwSig.main(args)
+
+        # Test count output
+
+        count_df = pd.read_csv(os.path.join(self.__temp_dir, job_name + ".count.csv"), 
+                               index_col=0,
+                               )
+        
+        self.assertEqual(count_df.shape, (3, 1))
+
+        self.assertEqual(count_df.index[0], "FOS")
