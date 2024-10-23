@@ -39,6 +39,12 @@ class RSEM2CountTable:
                             dest="opath", 
                             required=True, 
                             )
+
+        parser.add_argument("--count_type",
+                            help="Type of the count, either 'expected_count' or 'TPM'.", 
+                            dest="count_type", 
+                            default="expected_count", 
+                            )
     
     @staticmethod
     def read_rsem_output(rsem_output):
@@ -55,11 +61,11 @@ class RSEM2CountTable:
         return gene_id_list
     
     @staticmethod
-    def get_count_by_id(rsem_table, gene_id_list):
+    def get_count_by_id(rsem_table, gene_id_list, count_type):
         counts = []
         for gene_id in gene_id_list:
             if gene_id in rsem_table.index:
-                count = rsem_table.loc[gene_id, "expected_count"]
+                count = rsem_table.loc[gene_id, count_type]
             else:
                 count = np.nan
             counts.append(count)
@@ -75,7 +81,7 @@ class RSEM2CountTable:
         rsem_tables = [RSEM2CountTable.read_rsem_output(rsem_output) for rsem_output in args.rsem_output]
         gene_ids = RSEM2CountTable.read_list(args.gene_id_list)
 
-        count_dict = {s: RSEM2CountTable.get_count_by_id(rsem_table, gene_ids) for s, rsem_table in zip(args.sample, rsem_tables)}
+        count_dict = {s: RSEM2CountTable.get_count_by_id(rsem_table, gene_ids, args.count_type) for s, rsem_table in zip(args.sample, rsem_tables)}
         count_table = pd.DataFrame(count_dict, index=gene_ids)
 
         RSEM2CountTable.save_count_table(count_table, args.opath)

@@ -31,12 +31,18 @@ class RSEM2CountTableTest(unittest.TestCase):
 
         return super().tearDown()
     
-    def test_main(self):
+    def get_simple_args(self):
         args = argparse.Namespace(sample=self.__samples,
                                   rsem_output=self.__rsem_paths,
                                   gene_id_list=self.__gene_id_list_path,
                                   opath=os.path.join(self.__wdir, "count_table.tsv"),
+                                  count_type="expected_count",
                                   )
+        
+        return args
+    
+    def test_main(self):
+        args = self.get_simple_args()
         
         RSEM2CountTable.main(args)
 
@@ -45,3 +51,16 @@ class RSEM2CountTableTest(unittest.TestCase):
                              )
         
         self.assertEqual(output.loc["ENSG00000243485.5", "sample1"], 2.69)
+    
+    def test_tpm_output(self):
+        args = self.get_simple_args()
+        args.count_type = "TPM"
+        
+        RSEM2CountTable.main(args)
+
+        output = pd.read_csv(args.opath, 
+                             index_col=0, 
+                             )
+        
+        self.assertEqual(output.loc["ENSG00000243485.5", "sample1"], 0.4)
+
