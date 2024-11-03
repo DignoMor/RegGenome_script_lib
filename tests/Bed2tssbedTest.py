@@ -72,6 +72,7 @@ class Bed2tssbedTest(unittest.TestCase):
         args = argparse.Namespace(bed_in=self.__bed_in,
                                   bed_out=self.__bed_out,
                                   region_file_type="bed6",
+                                  output_site="TSS",
                                   )
         
         return args
@@ -99,6 +100,23 @@ class Bed2tssbedTest(unittest.TestCase):
         self.__out_bt_bed6gene.load_from_file(args.bed_out)
 
         self.assertTrue((self.__out_bt_bed6gene.to_dataframe().values == self.__ans_bt_bed6gene.to_dataframe().values).all())
+    
+    def test_different_output_site_types(self):
+        args = self.get_simple_args()
+
+        args.output_site = "center"
+        args.bed_out = os.path.join(self.__data_dir, "test.center.bed")
+
+        Bed2TSSBED.main(args)
+
+        self.__out_bed_table = BedTable6()
+        self.__out_bed_table.load_from_file(args.bed_out)
+
+        self.__ans_center = self.__test_ans.copy()
+        self.__ans_center["start"] = [150, 250, 350]
+        self.__ans_center["end"] = [151, 251, 351]
+
+        self.assertTrue((self.__out_bed_table.to_dataframe().values == self.__ans_center.values).all())
     
 if __name__ == "__main__":
     unittest.main()
