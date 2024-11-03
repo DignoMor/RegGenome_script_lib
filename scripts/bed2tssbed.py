@@ -43,10 +43,6 @@ class Bed2TSSBED:
                             required=True, 
                             )
 
-        parser.add_argument("--window_size", "-w",
-                            help="The window size [250-250]. The default is to return 501 bp window with tss in middle.", 
-                            default="250-250")
-        
         parser.add_argument("--region_file_type", 
                             help="The type of region file. [bed6] ({})".format(", ".join(Bed2TSSBED.get_region_file_type2class_dict().keys())), 
                             default="bed6",
@@ -61,13 +57,6 @@ class Bed2TSSBED:
         for strand in np.unique(input_bed_table.get_region_strands()):
             if strand not in ("+", "-"):
                 raise Exception("Insufficient strand information!")
-
-        match = re.search("([0-9]*)-([0-9]*)", args.window_size)
-        if not match:
-            raise Exception("Unrecognized window size: {}".format(args.window_size))
-
-        l_pad = int(match.group(1))
-        r_pad = int(match.group(2))
         
         output_bt = input_bed_table._clone_empty()
         output_df = pd.DataFrame(columns=output_bt.column_names)
@@ -79,8 +68,8 @@ class Bed2TSSBED:
                 tss = region["end"] - 1
             
             output_region_dict = region.to_dict()
-            output_region_dict["start"] = tss - l_pad
-            output_region_dict["end"] = tss + r_pad + 1
+            output_region_dict["start"] = tss 
+            output_region_dict["end"] = tss + 1
             output_df.loc[len(output_df)] = output_region_dict
 
         output_bt.load_from_dataframe(output_df)

@@ -71,7 +71,6 @@ class Bed2tssbedTest(unittest.TestCase):
     def get_simple_args(self):
         args = argparse.Namespace(bed_in=self.__bed_in,
                                   bed_out=self.__bed_out,
-                                  window_size="0-0",
                                   region_file_type="bed6",
                                   )
         
