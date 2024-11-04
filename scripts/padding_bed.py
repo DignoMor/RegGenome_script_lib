@@ -4,7 +4,8 @@ import argparse
 
 import pandas as pd
 
-from RGTools.BedTable import BedTable6
+from RGTools.BedTable import BedTable6, BedTable3
+from RGTools.utils import str2bool
 
 class PaddingBed:
     @staticmethod
@@ -34,26 +35,93 @@ class PaddingBed:
                             type=str,
                             required=True,
                             )
+        
+        parser.add_argument("--input_file_type",
+                            help="File type of the input region file. "
+                            "If bed3 is given, all regions will be assumed "
+                            "to be on the positive strand. [bed6] "
+                            "(Options:{})".format(", ".join(PaddingBed.get_supported_region_file_types())), 
+                            default="bed6",
+                            type=str, 
+                            )
+        
+        parser.add_argument("--ignore_strand",
+                            help="Ignore the strand information in the input file. ", 
+                            default=False,
+                            type=str2bool,
+                            )
+
+    @staticmethod
+    def args_sanity_check(args):
+        if not args.input_file_type in PaddingBed.get_supported_region_file_types():
+            raise ValueError("Invalid input file type: {}".format(args.input_file_type))
+        
+        if args.input_file_type == "bed3":
+            if not args.ignore_strand:
+                raise ValueError("Strand info not available in bed3 file. ")
+        
+        return args
+
+    @staticmethod
+    def get_supported_region_file_types():
+        '''
+        Return the supported region file types.
+        '''
+        return ["bed6", "bed3"]
+    
+    @staticmethod
+    def read_region(region_file_path, region_file_type):
+        '''
+        Read a region file and return a BedTable object.
+        '''
+        if region_file_type == "bed6":
+            bt = BedTable6()
+            bt.load_from_file(region_file_path)
+        elif region_file_type == "bed3":
+            bt = BedTable3()
+            bt.load_from_file(region_file_path)
+        
+        return bt
+
+    @staticmethod
+    def padding_region(region, upstream_pad, downstream_pad, 
+                       ignore_strand=False, 
+                       ):
+        if ignore_strand:
+            start = region["start"] - upstream_pad
+            end = region["end"] + downstream_pad
+        elif region["strand"] == "+":
+            start = region["start"] - upstream_pad
+            end = region["end"] + downstream_pad
+        elif region["strand"] == "-":
+            start = region["start"] - downstream_pad
+            end = region["end"] + upstream_pad
+        else:
+            raise ValueError("Invalid strand value: {}".format(region["strand"]))
+        
+        
+        return {"chrom": region["chrom"],
+                "start": start,
+                "end": end, 
+                }
 
     @staticmethod
     def main(args):
-        input_bt = BedTable6()
-        output_bt = BedTable6()
+        args = PaddingBed.args_sanity_check(args)
 
-        input_bt.load_from_file(args.inpath)
-        output_df = pd.DataFrame(columns=output_bt.column_names)
+        input_bt = PaddingBed.read_region(args.inpath, args.input_file_type)
+        output_bt = input_bt._clone_empty()
+        output_df = input_bt.to_dataframe()
 
-        for region in input_bt.iter_regions():
-            if region["strand"] == "+":
-                start = region["start"] - args.upstream_pad
-                end = region["end"] + args.downstream_pad
-            elif region["strand"] == "-":
-                start = region["start"] - args.downstream_pad
-                end = region["end"] + args.upstream_pad
-            else:
-                raise ValueError("Invalid strand value: {}".format(region["strand"]))
+        for i, region in enumerate(input_bt.iter_regions()):
+            padded_region = PaddingBed.padding_region(region, 
+                                                      args.upstream_pad, 
+                                                      args.downstream_pad, 
+                                                      ignore_strand=args.ignore_strand,
+                                                      )
             
-            output_df.loc[output_df.shape[0]] = [region["chrom"], start, end, region["name"], region["score"], region["strand"]]
+            output_df.loc[i, "start"] = padded_region["start"]
+            output_df.loc[i, "end"] = padded_region["end"]
 
         output_bt.load_from_dataframe(output_df)
         
