@@ -81,7 +81,7 @@ class BedTRETools:
         bedtre.load_from_file(args.inpath)
 
         output_bt = BedTable6()
-        output_df = pd.DataFrame(columns=output_bt.column_names)
+        output_region_list = []
         
         for region in bedtre.iter_regions():
             chrom = region["chrom"]
@@ -98,18 +98,21 @@ class BedTRETools:
                 region_type = "divergent"
                 
 
-            output_df.loc[output_df.shape[0]] = [chrom,
-                                                 start, 
-                                                 end, 
-                                                 "_".join([region["chrom"], 
-                                                           str(region["start"]),
-                                                           str(region["end"]), 
-                                                           region_type, 
-                                                           ]), 
-                                                 ".", 
-                                                 ".", 
-                                                 ]
-        
+            output_region_list.append({"chrom": chrom, 
+                                       "start": start, 
+                                       "end": end, 
+                                       "name": "_".join([region["chrom"], 
+                                                         str(region["start"]),
+                                                         str(region["end"]), 
+                                                         region_type, 
+                                                         ]),
+                                       "fwdTSS": region["fwdTSS"],
+                                       "revTSS": region["revTSS"],
+                                       })
+
+        output_df = pd.DataFrame(output_region_list,
+                                 columns=output_bt.column_names, 
+                                 )
         output_bt.load_from_dataframe(output_df)
         output_bt.write(args.opath)
 
