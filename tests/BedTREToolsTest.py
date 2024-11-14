@@ -41,7 +41,7 @@ class BedTREToolsTest(unittest.TestCase):
         output_bt.load_from_file(args.opath)
 
         self.assertEqual(output_bt.get_region_names()[0], 
-                         "chr1_634027_634244", 
+                         "chr1_634027_634244_divergent", 
                          )
 
         self.assertEqual(output_bt.get_chrom_names()[0], 
@@ -53,5 +53,5 @@ class BedTREToolsTest(unittest.TestCase):
                          )
 
         self.assertEqual(output_bt.get_end_locs()[0], 
-                         634303, 
+                         634304, 
                          )
