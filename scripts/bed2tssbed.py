@@ -89,7 +89,7 @@ class Bed2TSSBED:
         input_bed_table = Bed2TSSBED.read_input(args.bed_in, args.region_file_type)
         
         output_bt = input_bed_table._clone_empty()
-        output_df = pd.DataFrame(columns=output_bt.column_names)
+        output_region_list = []
 
         for region in input_bed_table.iter_regions():
             output_coord = Bed2TSSBED.get_site_coord(region, args.output_site)
@@ -97,7 +97,10 @@ class Bed2TSSBED:
             output_region_dict = region.to_dict()
             output_region_dict["start"] = output_coord
             output_region_dict["end"] = output_coord + 1
-            output_df.loc[len(output_df)] = output_region_dict
+            output_region_list.append(output_region_dict)
+
+        output_df = pd.DataFrame(output_region_list, 
+                                 columns=output_bt.column_names)
 
         output_bt.load_from_dataframe(output_df)
         output_bt.write(args.bed_out)
