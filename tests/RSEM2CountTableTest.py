@@ -15,8 +15,8 @@ class RSEM2CountTableTest(unittest.TestCase):
         self.__wdir = "RSEM2CountTableTest_temp_data"
 
         self.__samples = ["sample1", "sample2"]
-        self.__rsem_paths = ["sample_data/sample1.rsem.gene.results",
-                             "sample_data/sample2.rsem.gene.results",
+        self.__rsem_paths = ["sample_data/sample_rsem_results/sample1.rsem.gene.results",
+                             "sample_data/sample_rsem_results/sample2.rsem.gene.results",
                              ]
         
         self.__gene_id_list_path = "sample_data/gencode.v37.gene_id.list"
