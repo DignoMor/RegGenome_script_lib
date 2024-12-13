@@ -164,3 +164,6 @@ cython_debug/
 
 # project folder for large files
 large_sample_data/
+
+# project folder for temp files
+wdir/
