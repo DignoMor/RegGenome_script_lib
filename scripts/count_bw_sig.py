@@ -10,32 +10,10 @@ import pandas as pd
 
 from RGTools.utils import str2bool
 from RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
+from RGTools.GenomicElements import GenomicElements
 from RGTools.BwTrack import BwTrack
 
 class CountBwSig:
-    #TODO: add BedTableTRE support
-    @staticmethod
-    def get_region_file_suffix2class_dict():
-        '''
-        Return the dictionary that maps region file suffix to the corresponding class.
-        '''
-        return {
-            "bed3": BedTable3,
-            "bed6": BedTable6,
-            "bed6gene": CountBwSig.BedTable6Gene,
-        }
-
-    @staticmethod
-    def BedTable6Gene():
-        '''
-        Helper function to return a BedTable6Plus object
-        that can load bed6gene annotations.
-        '''
-        bt = BedTable6Plus(extra_column_names=["gene_symbol"], 
-                        extra_column_dtype=[str], 
-                        )
-        return bt
-    
     @staticmethod
     def get_region_id_types():
         '''
@@ -64,6 +42,7 @@ class CountBwSig:
     
     @staticmethod
     def set_parser(parser):
+        GenomicElements.set_parser_genomic_element_region(parser)
         parser.add_argument("--job_name", 
                             help="Name of the job (also output file prefix).", 
                             required=True,
@@ -100,21 +79,6 @@ class CountBwSig:
                             type=str2bool, 
                             dest="single_bw", 
                             default=False,
-                            )
-
-        parser.add_argument("--region_file_path", 
-                            help="Path to the region file.", 
-                            type=str, 
-                            required=True, 
-                            dest="region_file_path", 
-                            )
-        
-        parser.add_argument("--region_file_type.", 
-                            help="type of regional file. [bed3]"
-                            "(options: {})".format(", ".join(CountBwSig.get_region_file_suffix2class_dict().keys())), 
-                            default="bed3", 
-                            type=str, 
-                            dest="region_file_type", 
                             )
 
         parser.add_argument("--opath", 
@@ -233,7 +197,7 @@ class CountBwSig:
         if not os.path.exists(args.opath):
             os.makedirs(args.opath)
 
-        if not args.region_file_type in CountBwSig.get_region_file_suffix2class_dict().keys():
+        if not args.region_file_type in GenomicElements.get_region_file_suffix2class_dict().keys():
             raise Exception("Unsupported region file type ({}).".format(args.region_file_type))
 
         if not args.output_type in BwTrack.get_supported_quantification_type():
@@ -269,11 +233,12 @@ class CountBwSig:
         The index of the region df will be the unique identifier for the region 
         in the output matrix.
         '''
-        if not file_type in CountBwSig.get_region_file_suffix2class_dict().keys():
-            raise Exception("Unsupported region file type ({}).".format(file_type))
-        
-        region_bed_table = CountBwSig.get_region_file_suffix2class_dict()[file_type]()
-        region_bed_table.load_from_file(region_file)
+        genomic_elements = GenomicElements(region_path=region_file,
+                                           genome_path=None,
+                                           region_file_type=file_type,
+                                           )
+
+        region_bed_table=genomic_elements.get_region_bed_table()
         
         if file_type == "bed3":
             new_region_bed_table = BedTable6()
