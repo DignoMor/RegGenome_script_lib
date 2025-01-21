@@ -10,6 +10,7 @@ import pandas as pd
 
 from RGTools.utils import str2bool
 from RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
+from RGTools.BwTrack import BwTrack
 
 class CountBwSig:
     #TODO: add BedTableTRE support
@@ -25,13 +26,6 @@ class CountBwSig:
         }
 
     @staticmethod
-    def get_quantification_type():
-        '''
-        Return the list of quantification types.
-        '''
-        return ["raw_count", "RPK"]
-
-    @staticmethod
     def BedTable6Gene():
         '''
         Helper function to return a BedTable6Plus object
@@ -40,7 +34,6 @@ class CountBwSig:
         bt = BedTable6Plus(extra_column_names=["gene_symbol"], 
                         extra_column_dtype=[str], 
                         )
-
         return bt
     
     @staticmethod
@@ -176,7 +169,7 @@ class CountBwSig:
         
         parser.add_argument("--output_type",
                             help="What information is outputted. "
-                                "Options: [{}].".format(", ".join(CountBwSig.get_quantification_type())),
+                                "Options: [{}].".format(", ".join(BwTrack.get_supported_quantification_type())),
                             type=str,
                             default="raw_count",
                             dest="output_type",
@@ -243,7 +236,7 @@ class CountBwSig:
         if not args.region_file_type in CountBwSig.get_region_file_suffix2class_dict().keys():
             raise Exception("Unsupported region file type ({}).".format(args.region_file_type))
 
-        if not args.output_type in CountBwSig.get_quantification_type():
+        if not args.output_type in BwTrack.get_supported_quantification_type():
             raise Exception("Unsupported output type ({}).".format(args.output_type))
 
         if not args.min_len_after_padding >= 1:
@@ -295,113 +288,6 @@ class CountBwSig:
         return region_df
 
     @staticmethod
-    def quantify_signal(signal: np.array, output_type: str):
-        '''
-        Quantify the signal. For quantification that is 
-        not mirror-invariant, the signal should run from 
-        the initiation site to the termination site.
-
-        Keyword arguments:
-        - signal: signal to quantify
-        - output_type: what information is outputted [raw_count, RPK]
-        '''
-        if output_type == "raw_count":
-            return np.sum(signal)
-        elif output_type == "RPK":
-            return np.sum(signal) / len(signal) * 1e3
-        else:
-            raise Exception("Unsupported output type ({}).".format(output_type))
-
-    @staticmethod
-    def count_single_region(bw_pl, bw_mn, chrom, 
-                            start, end, strand, 
-                            single_bw=False,
-                            output_type="raw_count", 
-                            l_pad=0, r_pad=0, 
-                            min_len_after_padding=50,
-                            method_resolving_invalid_padding="raise",
-                            ):
-        '''
-        Count the reads in a single region.
-        Return the counts.
-
-        Keyword arguments:
-        - bw_pl: pyBigWig object for plus strand
-        - bw_mn: pyBigWig object for minus strand
-        - chrom: chromosome
-        - start: start position
-        - end: end position
-        - strand: strandness, "+" or "-" or "."
-        - single_bw: if there is only plus strand bigwig file
-        - output_type: what information is outputted [raw_count, RPK]
-        - l_pad: left padding
-        - r_pad: right padding
-        - min_len_after_padding: minimum length of the region after padding
-        - method_resolving_invalid_padding: method to resolve invalid padding
-        '''
-        # Invariants
-        if single_bw:
-            # For single_bw, no strand specificity would be possible
-            assert strand == "."
-
-        # Processing Padding
-        if - l_pad - r_pad + min_len_after_padding > end - start:
-            if method_resolving_invalid_padding == "fallback":
-                start = start
-                end = end
-            elif method_resolving_invalid_padding == "raise":
-                raise Exception("Padding is larger than the region ({}:{:d}-{:d}).".format(chrom, start, end))
-            elif method_resolving_invalid_padding == "drop":
-                sys.stderr.write("Padding is larger than the region ({}:{:d}-{:d}). Dropping the region.\n".format(chrom, start, end))
-                return np.nan
-            else:
-                raise Exception("Unsupported method to resolve invalid padding ({}).".format(method_resolving_invalid_padding))
-        else: 
-            start = start - l_pad
-            end = end + r_pad
-
-        # Count signal
-        if strand == "+":
-            pl_sig = np.nan_to_num(bw_pl.values(chrom, 
-                                                start, 
-                                                end, 
-                                                ))
-            quantification = CountBwSig.quantify_signal(pl_sig, 
-                                                        output_type, 
-                                                        )
-        elif strand == "-":
-            mn_sig = -np.nan_to_num(bw_mn.values(chrom, 
-                                                start, 
-                                                end, 
-                                                ))
-        
-            quantification = CountBwSig.quantify_signal(mn_sig, 
-                                                        output_type, 
-                                                        )
-        elif strand == ".":
-            pl_sig = np.nan_to_num(bw_pl.values(chrom, 
-                                                start, 
-                                                end))
-            
-            quantification = CountBwSig.quantify_signal(pl_sig, 
-                                                       output_type, 
-                                                       )
-
-            if not single_bw:
-                mn_sig = -np.nan_to_num(bw_mn.values(chrom, 
-                                                    start, 
-                                                    end))
-                mn_sig = np.flip(mn_sig)
-                
-                quantification += CountBwSig.quantify_signal(mn_sig, 
-                                                            output_type, 
-                                                            )
-        else:
-            raise Exception("Invalid strand type.")
-
-        return quantification
-
-    @staticmethod
     def main(args):
         args = CountBwSig.args_check_and_preprocessing(args)
 
@@ -419,30 +305,23 @@ class CountBwSig:
                                 )
 
         for sample ,bw_pl_path, bw_mn_path in zip(args.sample_names, args.bw_pls, args.bw_mns):
-            bw_pl = pyBigWig.open(bw_pl_path)
-            if args.single_bw:
-                bw_mn = bw_pl # For compatibility, set bw_mn as the same as bw_pl
-            else:
-                bw_mn = pyBigWig.open(bw_mn_path)
+            bed_track = BwTrack(bw_pl_path=bw_pl_path,
+                                bw_mn_path=bw_mn_path,
+                                signle_bw=args.single_bw,
+                                )
 
             for region_id, region_info in region_df.iterrows():
-                count_df.loc[region_id, sample] = CountBwSig.count_single_region(bw_pl,
-                                                                        bw_mn,
-                                                                        region_info["chrom"],
-                                                                        region_info["start"],
-                                                                        region_info["end"],
-                                                                        region_info["strand"],
-                                                                        args.single_bw,
-                                                                        args.output_type,
-                                                                        args.l_pad,
-                                                                        args.r_pad,
-                                                                        args.min_len_after_padding,
-                                                                        args.method_resolving_invalid_padding,
-                                                                        )
+                count_df.loc[region_id, sample] = bed_track.count_single_region(region_info["chrom"],
+                                                                                region_info["start"],
+                                                                                region_info["end"],
+                                                                                region_info["strand"],
+                                                                                args.output_type,
+                                                                                args.l_pad,
+                                                                                args.r_pad,
+                                                                                args.min_len_after_padding,
+                                                                                args.method_resolving_invalid_padding,
+                                                                                )
             
-            bw_pl.close()
-            bw_mn.close()
-
         count_df.dropna(inplace=True,
                         axis=0,
                         )
