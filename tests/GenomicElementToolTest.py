@@ -85,7 +85,7 @@ class GenomicElementToolTest(unittest.TestCase):
 
         return super().tearDown()
     
-    def get_count_bw_single_args(self):
+    def get_count_bw_simple_args(self):
         args = argparse.Namespace()
         args.subcommand = "count_bw"
         args.bw_pl = self.__bw_pls[0]
@@ -100,7 +100,7 @@ class GenomicElementToolTest(unittest.TestCase):
         return args
 
     def test_count_bw(self):
-        args = self.get_count_bw_single_args()
+        args = self.get_count_bw_simple_args()
 
         GenomicElementTool.count_bw_main(args)
 
