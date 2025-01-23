@@ -6,6 +6,7 @@ import sys
 import numpy as np
 
 from RGTools.GenomicElements import GenomicElements
+from RGTools.exceptions import InvalidBedRegionException
 from RGTools.BwTrack import BwTrack
 from RGTools.utils import str2bool
 
@@ -19,6 +20,14 @@ class GenomicElementTool:
                                                 )
 
         GenomicElementTool.set_parser_count_bw(parser_count_bw)
+
+        parser_pad_region = subparsers.add_parser("pad_region",
+                                                  help="Pad regions. This program differs from "
+                                                       "padding_bed.py in that it conserve the " 
+                                                       "order of elements in Genomic Elements files.",
+                                                  )
+        
+        GenomicElementTool.set_parser_pad_region(parser_pad_region)
 
     @staticmethod
     def set_parser_count_bw(parser):
@@ -59,13 +68,83 @@ class GenomicElementTool:
                             required=True,
                             type=str,
                             )
+    
+    @staticmethod
+    def set_parser_pad_region(parser):
+        GenomicElements.set_parser_genomic_element_region(parser)
+        parser.add_argument("--upstream_pad",
+                            help="Amount to extend to the upstream of the region. "
+                                 "Positive value will expand the region and negative value will shrink the region.",
+                            type=int,
+                            required=True,
+                            )
+
+        parser.add_argument("--downstream_pad",
+                            help="Amount to extend to the downstream of the region. "
+                                 "Positive value will expand the region and negative value will shrink the region.",
+                            type=int,
+                            required=True,
+                            )
+
+        parser.add_argument("--opath",
+                            help="Output path for the padded BED file",
+                            type=str,
+                            required=True,
+                            )
+
+        parser.add_argument("--ignore_strand",
+                            help="Ignore the strand information in the input file. ",
+                            default=False,
+                            type=str2bool,
+                            )
+        
+        parser.add_argument("--method_resolving_invalid_region", 
+                            help="Method to resolve invalid region after padding.", 
+                            type=str,
+                            default="fallback",
+                            choices=["raise", "fallback"],
+                            )
 
     @staticmethod
     def main(args):
         if args.subcommand == "count_bw":
             GenomicElementTool.count_bw_main(args)
+        elif args.subcommand == "pad_region":
+            GenomicElementTool.pad_region_main(args)
         else:
             raise ValueError("Unknown subcommand: {}".format(args.subcommand))
+
+    @staticmethod
+    def pad_region_main(args):
+        genomic_elements = GenomicElements(region_path=args.region_file_path,
+                                           region_file_type=args.region_file_type,
+                                           genome_path=args.genome_path,
+                                           )
+        
+        region_bt = genomic_elements.get_region_bed_table()
+
+        output_region_df = region_bt.to_dataframe()
+
+        for i, region in enumerate(region_bt.iter_regions()):
+            try:
+                new_region = region.pad_region(upstream_padding=args.upstream_pad,
+                                               downstream_padding=args.downstream_pad,
+                                               ignore_strand=args.ignore_strand,
+                                               )
+            except InvalidBedRegionException as e:
+                if args.method_resolving_invalid_region == "raise":
+                    raise e
+                elif args.method_resolving_invalid_region == "fallback":
+                    new_region = region
+                else:
+                    raise ValueError(f"Unknown method to resolve invalid region: {args.method_resolving_invalid_region}")
+
+            output_region_df.loc[i] = new_region.to_dict()
+        
+        output_region_bt = region_bt._clone_empty()
+        output_region_bt.load_from_dataframe(output_region_df)
+            
+        output_region_bt.write(args.opath)
 
     @staticmethod
     def count_bw_main(args):
@@ -89,6 +168,7 @@ class GenomicElementTool:
                                                             output_type=args.quantification_type,
                                                             ),
                                )
+
         output_arr = np.array(output_list)
 
         np.save(args.opath, output_arr)

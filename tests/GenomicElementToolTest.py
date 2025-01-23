@@ -8,10 +8,10 @@ import os
 import pandas as pd
 import numpy as np
 
-from scripts.RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
-
 sys.path.append('scripts')
 from scripts.genomicelement_tool import GenomicElementTool
+from RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
+from RGTools.exceptions import InvalidBedRegionException
 
 class GenomicElementToolTest(unittest.TestCase):
     def setUp(self):
@@ -110,4 +110,47 @@ class GenomicElementToolTest(unittest.TestCase):
         self.assertEqual(output[0], 17)
         self.assertEqual(output[2], 348)
 
+    def get_pad_region_simple_args(self):
+        args = argparse.Namespace()
+        args.subcommand = "pad_region"
+        args.region_file_path = self.__bed6_path
+        args.region_file_type = "bed6"
+        args.genome_path = None
+        args.upstream_pad = 100
+        args.downstream_pad = 100
+        args.ignore_strand = False
+        args.method_resolving_invalid_region = "fallback"
+        args.opath = os.path.join(self.__temp_dir, "output.bed6")
+
+        return args
+
+    def test_pad_region(self):
+        args = self.get_pad_region_simple_args()
+
+        GenomicElementTool.pad_region_main(args)
+
+        output_bt = BedTable6()
+        output_bt.load_from_file(args.opath)
+
+        self.assertEqual(len(output_bt), 3)
+
+        self.assertEqual(output_bt.get_start_locs()[0], 75278225)
+        self.assertEqual(output_bt.get_end_locs()[0], 75279426)
+
+        # Test fall back
+        args.method_resolving_invalid_region = "fallback"
+        args.upstream_pad = -10000
+        args.downstream_pad = -10000
+
+        GenomicElementTool.pad_region_main(args)
+        output_bt = BedTable6()
+        output_bt.load_from_file(args.opath)
+        self.assertEqual(output_bt.get_start_locs()[0], 75278325)
+        self.assertEqual(output_bt.get_end_locs()[0], 75279326)
+
+        # Test raise
+        args.method_resolving_invalid_region = "raise"
+
+        with self.assertRaises(InvalidBedRegionException):
+            GenomicElementTool.pad_region_main(args)
 
