@@ -13,6 +13,7 @@ import matplotlib.patches as patches
 from Bio import SeqIO
 
 from RGTools.BedTable import BedTable3
+from RGTools.ExogeneousSequences import ExogeneousSequences
 
 class ExogeneousTool:
     @staticmethod
@@ -32,15 +33,7 @@ class ExogeneousTool:
 
     @staticmethod
     def set_parser_metaplot(parser):
-        parser.add_argument("--inpath", "-I",
-                            help="Input path for exogeneous sequence (fasta).",
-                            required=True,
-                            )
-        
-        parser.add_argument("--region_path", 
-                            help="Path to the region file for plotting. (bed3)",
-                            required=True,
-                            )
+        ExogeneousSequences.set_parser_exogeneous_sequences(parser)
 
         parser.add_argument("--outpath", "-O",
                             help="Output path for metaplot.",
@@ -65,13 +58,14 @@ class ExogeneousTool:
 
     @staticmethod
     def set_parser_filter(parser):
-        parser.add_argument("--inpath", "-I",
-                            help="Input path for exogeneous sequence (fasta).",
+        ExogeneousSequences.set_parser_exogeneous_sequences(parser)
+        parser.add_argument("--fasta_out", 
+                            help="Output path for filtered fasta file.",
                             required=True,
                             )
-
-        parser.add_argument("--outpath", "-O",
-                            help="Output path for filtered exogeneous sequence.",
+        
+        parser.add_argument("--region_out", 
+                            help="Output path for filtered region file.",
                             required=True,
                             )
 
@@ -179,8 +173,11 @@ class ExogeneousTool:
 
     @staticmethod
     def metaplot_main(args):
-        region_bt = BedTable3()
-        region_bt.load_from_file(args.region_path)
+        exogeneous_seq = ExogeneousSequences(args.region_file_path, 
+                                             args.region_file_type, 
+                                             args.fasta,
+                                             )
+        region_bt = exogeneous_seq.get_region_bed_table()
 
         region_sizes = region_bt.get_end_locs() - region_bt.get_start_locs()
         elem_size = region_sizes[0]
@@ -207,10 +204,32 @@ class ExogeneousTool:
 
     @staticmethod
     def filter_main(args):
-        with open(args.inpath, "r") as input_f:
+        exogeneous_seq = ExogeneousSequences(args.region_file_path, 
+                                             args.region_file_type, 
+                                             args.fasta,
+                                             )
+        region_bt = exogeneous_seq.get_region_bed_table()
+
+        output_bt = region_bt._clone_empty()
+        output_df = pd.DataFrame(columns=output_bt.column_names)
+
+        for region in region_bt.iter_regions():
+            seq_name = region["chrom"]
+
+            if re.match(args.regex, seq_name):
+                output_df = pd.concat([output_df, 
+                                       pd.DataFrame(region.to_dict(), 
+                                                    columns=output_df.columns, 
+                                                    index=[output_df.shape[0]],
+                                                    ), 
+                                       ])
+
+        output_bt.write(args.region_out)
+
+        with open(args.fasta, "r") as input_f:
             for record in SeqIO.parse(input_f, "fasta"):
                 if re.match(args.regex, record.id):
-                    with open(args.outpath, "a") as output_f:
+                    with open(args.fasta_out, "a") as output_f:
                         SeqIO.write(record, output_f, "fasta")
 
     @staticmethod

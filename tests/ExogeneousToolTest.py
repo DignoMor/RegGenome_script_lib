@@ -18,7 +18,8 @@ class ExogeneousToolTest(unittest.TestCase):
             os.makedirs(self.__test_dir)
 
         self.__sample_fasta_path = "large_sample_data/hg38.fa"
-        self.__sample_exogeneous_fasta_path = "sample_data/sample_exogeneous_sequence/Mutagenesis_MG_Wightman_union_Bellenguez.tier1.chr2.fa"
+        self.__sample_exogeneous_fasta_path = "sample_data/sample_exogeneous_sequence/sample.exogeneous.chr2.fa"
+        self.__sample_bed3_path = "sample_data/sample_exogeneous_sequence/sample.exogeneous.chr2.predicted_peaks.bed"
 
         return super().setUp()
     
@@ -27,9 +28,12 @@ class ExogeneousToolTest(unittest.TestCase):
             shutil.rmtree(self.__test_dir)
     
     def get_parse_default_args(self):
-        args = argparse.Namespace(inpath=self.__sample_fasta_path,
-                                  outpath=os.path.join(self.__test_dir, "test_output.fasta"),
-                                  regex="chr11_KI270721v1_*", 
+        args = argparse.Namespace(fasta=self.__sample_exogeneous_fasta_path,
+                                  region_file_path=self.__sample_bed3_path,
+                                  region_file_type="bed3",
+                                  fasta_out=os.path.join(self.__test_dir, "test_output.fasta"),
+                                  region_out=os.path.join(self.__test_dir, "test_output.bed"),
+                                  regex="chr2_127105185_127107299.*", 
                                   subcommand="filter",
                                   )
         return args
@@ -47,7 +51,7 @@ class ExogeneousToolTest(unittest.TestCase):
         
         ExogeneousTool.filter_main(args)
 
-        with open(args.outpath, "r") as output_f:
+        with open(args.fasta_out, "r") as output_f:
             for record in SeqIO.parse(output_f, "fasta"):
-                self.assertEqual(record.id, "chr11_KI270721v1_random")
-                self.assertEqual(record.seq[:5], "ctgcg")
+                self.assertEqual(record.id[:24], "chr2_127105185_127107299")
+                self.assertEqual(record.seq[:5], "CAAAG")
