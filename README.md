@@ -58,3 +58,11 @@ the same fasta entry.
 A special type of `exogeneous sequences`. The 
 `fasta` file for genomic regions are restricted to 
 a reference genome.
+
+### Mutagenesis Results
+
+Another special type of `exogeneous sequences` and can 
+be processed by `exogeneous_tool`. This data type has an 
+additional constraint that each bed entry must correspond 
+to a fasta entry, so that results can be processed 
+using pattern matching with regular expressions.
