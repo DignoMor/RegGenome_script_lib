@@ -433,6 +433,10 @@ class ExogeneousTool:
             mut_logical = (region_bt_w_anno.get_region_extra_column("seq_id") == seq_id) & \
                 (region_bt_w_anno.get_region_extra_column("seq_type") == "mut")
             mut_logical = np.array(mut_logical, dtype=bool)
+
+            if mut_logical.sum() == 0:
+                #TODO: add exception handling here
+                continue
             
             track_info_dict = ExogeneousTool.quantify_track_diff(pl_tracks[ref_logical, :], 
                                                                  mn_tracks[ref_logical, :],
