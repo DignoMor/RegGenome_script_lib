@@ -50,10 +50,10 @@ class GenomicElementTool:
                             default=False,
                             )
 
-        parser.add_argument("--ignore_strandness",
-                            help="Ignore strandness of the signal.",
-                            type=str2bool,
-                            default=False,
+        parser.add_argument("--override_strand",
+                            help="overide the strand information in the input file (None if use the input strand info).",
+                            type=str,
+                            default=None,
                             )
 
         parser.add_argument("--quantification_type",
@@ -106,6 +106,20 @@ class GenomicElementTool:
                             )
 
     @staticmethod
+    def StrandInputType(string):
+        '''
+        Input type for strand information.
+        Converts "None" to None.
+
+        Parameters:
+        - string: str input for strand info.
+        '''
+        if string == "None":
+            return None
+        else:
+            return string
+
+    @staticmethod
     def main(args):
         if args.subcommand == "count_bw":
             GenomicElementTool.count_bw_main(args)
@@ -118,7 +132,7 @@ class GenomicElementTool:
     def pad_region_main(args):
         genomic_elements = GenomicElements(region_path=args.region_file_path,
                                            region_file_type=args.region_file_type,
-                                           genome_path=args.genome_path,
+                                           fasta_path=None, 
                                            )
         
         region_bt = genomic_elements.get_region_bed_table()
@@ -150,7 +164,7 @@ class GenomicElementTool:
     def count_bw_main(args):
         genomic_elements = GenomicElements(region_path=args.region_file_path,
                                            region_file_type=args.region_file_type,
-                                           genome_path=args.genome_path,
+                                           fasta_path=None, 
                                            )
         region_bt = genomic_elements.get_region_bed_table()
 
@@ -161,10 +175,15 @@ class GenomicElementTool:
 
         output_list = []
         for region in region_bt.iter_regions():
+            if args.override_strand:
+                strand = args.override_strand
+            else:
+                strand = region["strand"]
+
             output_list.append(bw_track.count_single_region(region["chrom"],
                                                             region["start"],
                                                             region["end"],
-                                                            region["strand"],
+                                                            strand, 
                                                             output_type=args.quantification_type,
                                                             ),
                                )

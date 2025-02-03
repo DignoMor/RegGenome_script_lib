@@ -93,7 +93,7 @@ class GenomicElementToolTest(unittest.TestCase):
         args.single_bw = False
         args.region_file_path = self.__bed6_path
         args.region_file_type = "bed6"
-        args.genome_path = None
+        args.override_strand = None
         args.quantification_type = "raw_count"
         args.opath = os.path.join(self.__temp_dir, "output.npy")
 
@@ -110,12 +110,18 @@ class GenomicElementToolTest(unittest.TestCase):
         self.assertEqual(output[0], 17)
         self.assertEqual(output[2], 348)
 
+        args.quantification_type = "full_track"
+        GenomicElementTool.count_bw_main(args)
+
+        output = np.load(args.opath)
+
+        self.assertEqual(output.shape, (3, 1001))
+
     def get_pad_region_simple_args(self):
         args = argparse.Namespace()
         args.subcommand = "pad_region"
         args.region_file_path = self.__bed6_path
         args.region_file_type = "bed6"
-        args.genome_path = None
         args.upstream_pad = 100
         args.downstream_pad = 100
         args.ignore_strand = False
