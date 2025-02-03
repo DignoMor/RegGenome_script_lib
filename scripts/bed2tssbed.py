@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import sys
 import re
 
 import pandas as pd
@@ -107,6 +108,9 @@ class Bed2TSSBED:
 
 
 if __name__ == "__main__":
+    sys.stderr.write("Warning: This script is deprecated."
+                     "Use genomicelement_tool.py bed2tssbed for the same functionality.\n")
+
     parser = argparse.ArgumentParser(prog="Gen TSS bed from bed6 files.")
     Bed2TSSBED.set_parser(parser=parser)
     args = parser.parse_args()

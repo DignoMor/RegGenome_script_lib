@@ -12,6 +12,7 @@ sys.path.append('scripts')
 from scripts.genomicelement_tool import GenomicElementTool
 from RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
 from RGTools.exceptions import InvalidBedRegionException
+from RGTools.GenomicElements import GenomicElements
 
 class GenomicElementToolTest(unittest.TestCase):
     def setUp(self):
@@ -159,4 +160,44 @@ class GenomicElementToolTest(unittest.TestCase):
 
         with self.assertRaises(InvalidBedRegionException):
             GenomicElementTool.pad_region_main(args)
+
+    def get_bed2tssbed_simple_args(self):
+        args = argparse.Namespace()
+        args.subcommand = "bed2tssbed"
+        args.region_file_path = self.__bed6_path
+        args.region_file_type = "bed6"
+        args.opath = os.path.join(self.__temp_dir, "bed2tssbed_output.bed6")
+        args.output_site = "TSS"
+
+        return args
+    
+    def test_bed2tssbed(self):
+        args = self.get_bed2tssbed_simple_args()
+
+        GenomicElementTool.bed2tssbed_main(args)
+
+        output_bt = BedTable6()
+        output_bt.load_from_file(args.opath)
+
+        self.assertEqual(len(output_bt), 3)
+
+        self.assertEqual(output_bt.get_start_locs()[0], 75279325)
+        self.assertEqual(output_bt.get_end_locs()[0], 75279326)
+
+    def test_bed2tssbed_bed6gene_io(self):
+
+        args = self.get_bed2tssbed_simple_args()
+
+        args.region_file_type = "bed6gene"
+        args.region_file_path = self.__bed6gene_path
+
+        GenomicElementTool.bed2tssbed_main(args)
+
+        out_bt = GenomicElements.BedTable6Gene()
+        out_bt.load_from_file(args.opath)
+
+        self.assertEqual(out_bt.get_start_locs()[0], 75279325)
+        self.assertEqual(out_bt.get_end_locs()[0], 75279326)
+        self.assertEqual(out_bt.get_region_extra_column("gene_symbol")[0], "gene2")
+
 

@@ -3,6 +3,7 @@
 import argparse
 import sys
 
+import pandas as pd
 import numpy as np
 
 from RGTools.GenomicElements import GenomicElements
@@ -28,6 +29,12 @@ class GenomicElementTool:
                                                   )
         
         GenomicElementTool.set_parser_pad_region(parser_pad_region)
+
+        parser_bed2tssbed = subparsers.add_parser("bed2tssbed",
+                                                  help="Convert bed file to TSS bed file.",
+                                                  )
+        
+        GenomicElementTool.set_parser_bed2tssbed(parser_bed2tssbed)
 
     @staticmethod
     def set_parser_count_bw(parser):
@@ -106,6 +113,39 @@ class GenomicElementTool:
                             )
 
     @staticmethod
+    def set_parser_bed2tssbed(parser):
+        GenomicElements.set_parser_genomic_element_region(parser)
+        parser.add_argument("--opath",
+                            help="Output path for the TSS BED file",
+                            type=str,
+                            required=True,
+                            )
+
+        parser.add_argument("--output_site", 
+                            help="The site for output. [TSS] ({})".format(
+                                ", ".join(GenomicElementTool.get_bed2tssbed_output_site_types()), 
+                            ), 
+                            default="TSS",
+                            type=str, 
+                            )
+
+    @staticmethod
+    def get_bed2tssbed_output_site_types():
+        return ["TSS", "center"]
+
+    @staticmethod
+    def get_bed2tssbed_site_coord(region, output_site_type):
+        if output_site_type == "TSS":
+            if region["strand"] == "+":
+                site = region["start"]
+            elif region["strand"] == "-":
+                site = region["end"] - 1
+        elif output_site_type == "center":
+            site = int((region["start"] + region["end"]) // 2)
+        
+        return site
+
+    @staticmethod
     def StrandInputType(string):
         '''
         Input type for strand information.
@@ -125,6 +165,8 @@ class GenomicElementTool:
             GenomicElementTool.count_bw_main(args)
         elif args.subcommand == "pad_region":
             GenomicElementTool.pad_region_main(args)
+        elif args.subcommand == "bed2tssbed":
+            GenomicElementTool.bed2tssbed_main(args)
         else:
             raise ValueError("Unknown subcommand: {}".format(args.subcommand))
 
@@ -191,6 +233,31 @@ class GenomicElementTool:
         output_arr = np.array(output_list)
 
         np.save(args.opath, output_arr)
+    
+    @staticmethod
+    def bed2tssbed_main(args):
+        genomic_elements = GenomicElements(region_path=args.region_file_path,
+                                           region_file_type=args.region_file_type,
+                                           fasta_path=None, 
+                                           )
+        region_bt = genomic_elements.get_region_bed_table()
+
+        output_region_list = []
+        for region in region_bt.iter_regions():
+            output_coord = GenomicElementTool.get_bed2tssbed_site_coord(region, args.output_site)
+            
+            output_region_dict = region.to_dict()
+            output_region_dict["start"] = output_coord
+            output_region_dict["end"] = output_coord + 1
+            output_region_list.append(output_region_dict)
+
+        output_df = pd.DataFrame(output_region_list, 
+                                 columns=region_bt.column_names, 
+                                 )
+        
+        output_bt = region_bt._clone_empty()
+        output_bt.load_from_dataframe(output_df)
+        output_bt.write(args.opath)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Genomic element tool.")
