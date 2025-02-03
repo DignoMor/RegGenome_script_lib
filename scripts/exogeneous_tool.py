@@ -59,6 +59,11 @@ class ExogeneousTool:
                             required=True,
                             )
         
+        parser.add_argument("--negate_mn_strand", 
+                            help="If to negate the minus strand signal.", 
+                            default=False, 
+                            )
+        
         parser.add_argument("--title",
                             help="Title for the metaplot.",
                             default="Metaplot",
@@ -364,6 +369,9 @@ class ExogeneousTool:
 
         pl_tracks_arr = np.load(args.signal_tracks_pl)
         mn_tracks_arr = np.load(args.signal_tracks_mn)
+
+        if args.negate_mn_strand:
+            mn_tracks_arr = -mn_tracks_arr
 
         ExogeneousTool.check_signal_track_arr(pl_tracks_arr, elem_size, num_elem)
         ExogeneousTool.check_signal_track_arr(mn_tracks_arr, elem_size, num_elem)
