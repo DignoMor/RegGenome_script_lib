@@ -234,7 +234,7 @@ class CountBwSig:
         in the output matrix.
         '''
         genomic_elements = GenomicElements(region_path=region_file,
-                                           genome_path=None,
+                                           fasta_path=None,
                                            region_file_type=file_type,
                                            )
 
@@ -272,7 +272,7 @@ class CountBwSig:
         for sample ,bw_pl_path, bw_mn_path in zip(args.sample_names, args.bw_pls, args.bw_mns):
             bed_track = BwTrack(bw_pl_path=bw_pl_path,
                                 bw_mn_path=bw_mn_path,
-                                signle_bw=args.single_bw,
+                                single_bw=args.single_bw,
                                 )
 
             for region_id, region_info in region_df.iterrows():
