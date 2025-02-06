@@ -8,7 +8,9 @@ import sys
 import numpy as np
 import pandas as pd
 
-from RGTools.utils import str2bool
+import statsmodels.api as sm
+
+from RGTools.utils import str2bool, str2none
 
 class CountTableTool:
     @staticmethod
@@ -21,6 +23,8 @@ class CountTableTool:
             CountTableTool.substitute_gene_id_main(args)
         elif args.subcommand == "divide_table":
             CountTableTool.divide_table_main(args)
+        elif args.subcommand == "compute_tissue_tstat":
+            CountTableTool.compute_tissue_tstat_main(args)
         else:
             raise ValueError("Invalid subcommand.")
 
@@ -52,6 +56,13 @@ class CountTableTool:
         
         CountTableTool.set_parser_divide_table(parser_divide_table)
 
+        parser_compute_tissue_tstat = subparsers.add_parser("compute_tissue_tstat",
+                                                            help="Compute t-statistic for tissue specificity."
+                                                                 "Based on Finucane et al. 2018 Nature Genetics.",
+                                                            )
+        
+        CountTableTool.set_parser_compute_tissue_tstat(parser_compute_tissue_tstat)
+
     @staticmethod
     def set_parser_per_million_normalization(parser):
         parser.add_argument("--inpath", "-I", 
@@ -79,6 +90,28 @@ class CountTableTool:
                             help="Output path.", 
                             default="stdout", 
                             dest="opath",
+                            )
+
+    def set_parser_compute_tissue_tstat(parser):
+        parser.add_argument("--inpath", "-I", 
+                            help="Input path for count table.", 
+                            required=True, 
+                            dest="inpath", 
+                            )
+        
+        parser.add_argument("--tissue_labels", 
+                            help="Tissue labels for each sample. comma seperated string. "
+                                 "(e.g. tissue1,tissue2,tissue3,tissue3) "
+                                 "If None, column names will be used.",
+                            default=None,
+                            type=str2none, 
+                            dest="tissue_labels", 
+                            )
+
+        parser.add_argument("--opath", 
+                            help="Output path for tstat table.", 
+                            default="stdout", 
+                            dest="opath", 
                             )
 
     def set_parser_divide_table(parser):
@@ -175,6 +208,24 @@ class CountTableTool:
             raise ValueError("Column mismatch.")
 
         return None
+    
+    @staticmethod
+    def compute_tstat_one_elem(X, Y):
+        '''
+        Compute t-statistics for one element.
+        Adapted from You Chen's script.
+
+        Keyword arguments:
+        - X: labels for tissue type. np.array with shape (n, 1).
+          n being the number of sampels. For each sample, X has value 
+          1 for the tissue of interest and -1 for other tissues. 
+        - Y: expression matrix. np.array with shape (n, 1).
+        '''
+        X_df = pd.DataFrame(X, columns=["X1"])
+        X_df = sm.add_constant(X_df["X1"])
+        model = sm.OLS(Y, X_df).fit()
+        t = model.tvalues["X1"]
+        return t
 
     @staticmethod
     def per_million_normalization_main(args):
@@ -232,6 +283,37 @@ class CountTableTool:
             logical_pass_filter = (denominator_df[c] >= args.min_denominator) & (numerator_df[c] >= args.min_numerator)
             output_df.loc[logical_pass_filter, c] = numerator_df.loc[logical_pass_filter, c] / denominator_df.loc[logical_pass_filter, c]
         
+        CountTableTool.write_output_df(output_df, args.opath)
+    
+    @staticmethod
+    def compute_tissue_tstat_main(args):
+        input_df = CountTableTool.read_input_df(args.inpath)
+        if not args.tissue_labels:
+            tissue_labels = np.array(input_df.columns)
+        else:
+            tissue_labels = np.array(args.tissue_labels.split(","))
+
+        unique_tissues = np.unique(tissue_labels)
+
+        output_array = np.zeros((input_df.shape[0], len(unique_tissues)))
+
+        for tissue_ind, tissue in enumerate(unique_tissues):
+            X = tissue_labels == tissue
+            X = np.array([1 if x else -1 for x in X])
+
+            for elem_ind, row in enumerate(input_df.iterrows()):
+                elem = row[0]
+                elem_info = row[1]
+                Y = elem_info.values
+
+                tstat = CountTableTool.compute_tstat_one_elem(X, Y)
+                output_array[elem_ind, tissue_ind] = tstat
+
+        output_df = pd.DataFrame(output_array,
+                                 index=input_df.index,
+                                 columns=unique_tissues,
+                                 )
+
         CountTableTool.write_output_df(output_df, args.opath)
 
 if __name__ == "__main__":
