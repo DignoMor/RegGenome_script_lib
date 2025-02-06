@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # convert RSEM output to count table
+#TODO: incorporate this script to count table tool and remove this script
 
 import os
 import argparse
