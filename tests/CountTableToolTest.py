@@ -6,8 +6,11 @@ import sys
 import os
 
 import numpy as np
+import pandas as pd
 
 sys.path.append("scripts")
+
+from RGTools.BedTable import BedTable6
 
 from scripts.count_table_tool import CountTableTool
 from scripts.rsem2count_table import RSEM2CountTable
@@ -91,3 +94,28 @@ class CountTableToolTest(unittest.TestCase):
 
         result_df = CountTableTool.read_input_df(args.opath)
         self.assertAlmostEqual(result_df.loc["ENSG00000185920.16", "1"], -28.831860, places=3)
+    
+    def get_tstat_table2bed_args(self):
+        args = argparse.Namespace(subcommand="tstat_table2bed",
+                                  inpath=os.path.join(self.__test_dir, "tissue_tstat.csv"),
+                                  percentage=0.2, 
+                                  opath=self.__test_dir, 
+                                  region_info=self.__rsem_region_info,
+                                  )
+        
+        return args
+
+    def test_tstat_table2bed(self):
+        compute_tissue_tstat_args = self.get_compute_tissue_tstat_args()
+        CountTableTool.main(compute_tissue_tstat_args)
+
+        tstat_table2bed_args = self.get_tstat_table2bed_args()
+        CountTableTool.main(tstat_table2bed_args)
+
+        output_bt = BedTable6()
+        output_bt.load_from_file(os.path.join(tstat_table2bed_args.opath, 
+                                              "1.tstat_top.20%.bed", 
+                                              ))
+
+        self.assertEqual(output_bt.get_start_locs()[1], 19)
+

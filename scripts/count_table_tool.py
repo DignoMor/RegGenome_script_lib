@@ -4,12 +4,14 @@
 
 import argparse
 import sys
+import os
 
 import numpy as np
 import pandas as pd
 
 import statsmodels.api as sm
 
+from RGTools.BedTable import BedTable6, BedTable6Plus
 from RGTools.utils import str2bool, str2none
 
 class CountTableTool:
@@ -25,6 +27,8 @@ class CountTableTool:
             CountTableTool.divide_table_main(args)
         elif args.subcommand == "compute_tissue_tstat":
             CountTableTool.compute_tissue_tstat_main(args)
+        elif args.subcommand == "tstat_table2bed":
+            CountTableTool.tstat_table2bed_main(args)
         else:
             raise ValueError("Invalid subcommand.")
 
@@ -62,6 +66,12 @@ class CountTableTool:
                                                             )
         
         CountTableTool.set_parser_compute_tissue_tstat(parser_compute_tissue_tstat)
+
+        parser_tstat_table2bed = subparsers.add_parser("tstat_table2bed",
+                                                       help="Convert tstat table to bed file.",
+                                                       )
+        
+        CountTableTool.set_parser_tstat_table2bed(parser_tstat_table2bed)
 
     @staticmethod
     def set_parser_per_million_normalization(parser):
@@ -175,6 +185,37 @@ class CountTableTool:
                             default=False,
                             type=str2bool,
                             )
+
+
+    @staticmethod
+    def set_parser_tstat_table2bed(parser_tstat_table2bed):
+        '''
+        Convert tstat table to bed file.
+        '''
+        parser_tstat_table2bed.add_argument("--inpath", "-I", 
+                                            help="Input path for tstat table.", 
+                                            required=True, 
+                                            dest="inpath", 
+                                            )
+        
+        parser_tstat_table2bed.add_argument("--opath", "-O",
+                                            help="Output path for bed file.", 
+                                            default="stdout", 
+                                            dest="opath", 
+                                            )
+        
+        parser_tstat_table2bed.add_argument("--percentage",
+                                            help="Percentage of top tstat to be included in the bed file.", 
+                                            default=0.2, 
+                                            type=float, 
+                                            dest="percentage", 
+                                            )
+        
+        parser_tstat_table2bed.add_argument("--region_info",
+                                            help="Path to region info csv.", 
+                                            required=True, 
+                                            dest="region_info", 
+                                            )
 
     @staticmethod
     def read_input_df(input_path):
@@ -315,6 +356,30 @@ class CountTableTool:
                                  )
 
         CountTableTool.write_output_df(output_df, args.opath)
+
+    @staticmethod
+    def tstat_table2bed_main(args):
+        input_df = CountTableTool.read_input_df(args.inpath)
+        region_info_df = CountTableTool.read_region_info_df(args.region_info)
+
+        if len(region_info_df.columns) == 6:
+            init_output_bt = lambda: BedTable6()
+        else:
+            init_output_bt = lambda: BedTable6Plus(extra_column_names=region_info_df.columns[6:], 
+                                                   extra_column_dtype=[str] * (len(region_info_df.columns) - 6),
+                                                   )
+
+        for cellline in input_df.columns:
+            tstats = input_df[cellline].values
+            tstats = tstats[~ np.isnan(tstats)]
+            cutoff = np.percentile(tstats, 100 - args.percentage * 100)
+            regions_to_keep = input_df[input_df[cellline] > cutoff].index
+
+            output_bt = init_output_bt()
+            output_bt.load_from_dataframe(region_info_df.loc[regions_to_keep, :])
+            output_bt.write(os.path.join(args.opath, 
+                                         cellline + ".tstat_top.{:d}%.bed".format(int(args.percentage * 100)), 
+                                         ))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="Count Table Tool.")
