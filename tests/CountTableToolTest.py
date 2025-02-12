@@ -19,6 +19,7 @@ class CountTableToolTest(unittest.TestCase):
         if not os.path.exists(self.__test_dir):
             os.makedirs(self.__test_dir)
 
+        # sample data generated from rsem results
         self.__samples = ["sample1", "sample2"]
         self.__rsem_paths = ["sample_data/sample_rsem_results/sample1.rsem.gene.results",
                              "sample_data/sample_rsem_results/sample2.rsem.gene.results",
@@ -26,10 +27,11 @@ class CountTableToolTest(unittest.TestCase):
         
         self.__gene_id_list_path = "sample_data/gencode.v37.gene_id.list"
 
-        self.__sample_count_table = os.path.join(self.__test_dir, "sample_count_table.tsv")
-        self.__sample_count_table_multi_rep = os.path.join(self.__test_dir, "sample_count_table_multi_rep.tsv")
+        self.__rsem_count_table = os.path.join(self.__test_dir, "rsem_count_table.csv")
+        self.__rsem_count_table_multi_rep = os.path.join(self.__test_dir, "rsem_count_table_multi_rep.csv")
+        self.__rsem_region_info = os.path.join(self.__test_dir, "rsem.region_info.bed")
 
-        self._gen_sample_count_table()
+        self._gen_rsem_count_table()
 
         return super().setUp()
 
@@ -39,34 +41,46 @@ class CountTableToolTest(unittest.TestCase):
 
         return super().tearDown()
 
-    def _gen_sample_count_table(self):
+    def _gen_rsem_count_table(self):
         args = argparse.Namespace(sample=self.__samples,
                                   rsem_output=self.__rsem_paths,
                                   gene_id_list=self.__gene_id_list_path,
-                                  opath=self.__sample_count_table, 
+                                  opath=self.__rsem_count_table, 
                                   count_type="expected_count",
                                   )
         
         RSEM2CountTable.main(args)
 
-        sample_count_table = CountTableTool.read_input_df(self.__sample_count_table)
+        rsem_count_table = CountTableTool.read_input_df(self.__rsem_count_table)
 
         np.random.seed(76)
-        sample_count_table["sample1_rep1"] = sample_count_table["sample1"] + np.random.randint(-5, 5, len(sample_count_table))
-        sample_count_table["sample1_rep2"] = sample_count_table["sample1"] + np.random.randint(-5, 5, len(sample_count_table))
-        sample_count_table["sample2_rep1"] = sample_count_table["sample2"] + np.random.randint(-5, 5, len(sample_count_table))
-        sample_count_table["sample2_rep2"] = sample_count_table["sample2"] + np.random.randint(-5, 5, len(sample_count_table))
+        rsem_count_table["sample1_rep1"] = rsem_count_table["sample1"] + np.random.randint(-5, 5, len(rsem_count_table))
+        rsem_count_table["sample1_rep2"] = rsem_count_table["sample1"] + np.random.randint(-5, 5, len(rsem_count_table))
+        rsem_count_table["sample2_rep1"] = rsem_count_table["sample2"] + np.random.randint(-5, 5, len(rsem_count_table))
+        rsem_count_table["sample2_rep2"] = rsem_count_table["sample2"] + np.random.randint(-5, 5, len(rsem_count_table))
 
-        sample_count_table.drop(columns=["sample1", "sample2"], inplace=True)
-        sample_count_table.clip(lower=0, inplace=True)
+        rsem_count_table.drop(columns=["sample1", "sample2"], inplace=True)
+        rsem_count_table.clip(lower=0, inplace=True)
 
-        sample_count_table.to_csv(self.__sample_count_table_multi_rep)
+        rsem_count_table.to_csv(self.__rsem_count_table_multi_rep)
+
+        # make a temp region info file
+        region_info = pd.DataFrame({"chrom": ["chromUn"] * rsem_count_table.shape[0],
+                                    "start": range(rsem_count_table.shape[0]), 
+                                    "end": range(1, rsem_count_table.shape[0]+1),
+                                    "name": ".", 
+                                    "score": ".",
+                                    "strand": "+",
+                                    }, 
+                                    index=rsem_count_table.index,
+                                    )
+        region_info.to_csv(self.__rsem_region_info)
 
     def get_compute_tissue_tstat_args(self):
         args = argparse.Namespace(subcommand="compute_tissue_tstat",
-                                  inpath=self.__sample_count_table_multi_rep,
+                                  inpath=self.__rsem_count_table_multi_rep,
                                   tissue_labels="1,1,2,2", 
-                                  opath=os.path.join(self.__test_dir, "tissue_tstat.tsv"),
+                                  opath=os.path.join(self.__test_dir, "tissue_tstat.csv"),
                                   )
         
         return args
