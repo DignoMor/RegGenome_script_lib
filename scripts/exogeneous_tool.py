@@ -125,6 +125,11 @@ class ExogeneousTool:
                             default=None, 
                             )
         
+        parser.add_argument("--jsd_distribution_plot_path", 
+                            help="Path to the JSD plot.", 
+                            default=None,
+                            )
+        
         parser.add_argument("--opath", 
                             help="Output path for the results written in json format.",
                             required=True,
@@ -349,7 +354,18 @@ class ExogeneousTool:
         track_info_dict["ref_log_total_count"] = ref_log_total_count
         track_info_dict["mut_log_total_count"] = mut_log_total_count
         track_info_dict["diff_log_total_count"] = abs(diff_log_total_count)
+        
+        track_info_dict["pl_ref_mut_jsd"] = jensenshannon(pl_tracks_ref, pl_tracks_mut, 
+                                                          axis=1, 
+                                                          )
+        track_info_dict["mn_ref_mut_jsd"] = jensenshannon(mn_tracks_ref, mn_tracks_mut, 
+                                                          axis=1, 
+                                                          )
 
+        track_info_dict["combined_ref_mut_jsd"] = jensenshannon(np.concatenate([pl_tracks_ref, -mn_tracks_ref], axis=1),
+                                                                np.concatenate([pl_tracks_mut, -mn_tracks_mut], axis=1),
+                                                                axis=1, 
+                                                                )
         return track_info_dict
     
     @staticmethod
@@ -382,6 +398,27 @@ class ExogeneousTool:
         ax.set_xlabel("Reference Log Total Count")
         ax.set_ylabel("Mutated Log Total Count")
         ax.set_title("Mutated vs. Reference Predicted Counts")
+
+        if opath:
+            fig.savefig(opath)
+    
+    @staticmethod
+    def plot_largest_jsd(jsd_arr, opath=None):
+        '''
+        Plot the distribution of largest JSD.
+        
+        Keyword arguments:
+        - jsd_arr: np.array of JSD values
+        - opath: output path for the plot
+        '''
+        fig, ax = plt.subplots(1,1, 
+                               figsize=(8, 4), 
+                               )
+        
+        ax.hist(jsd_arr, bins=50, color="k")
+        ax.set_xlabel("JSD")
+
+        ax.set_title("Distribution of Largest Mut vs. Ref seq JSD")
 
         if opath:
             fig.savefig(opath)
@@ -504,6 +541,10 @@ class ExogeneousTool:
                                                                 np.array(mut_counts), 
                                                                 opath=args.total_count_plot_path,
                                                                 )
+        
+        if args.jsd_distribution_plot_path:
+            largest_jsd = np.array([d["combined_ref_mut_jsd"].max() for d in diff_dict_list])
+            ExogeneousTool.plot_largest_jsd(largest_jsd, args.jsd_distribution_plot_path)
 
     @staticmethod
     def compute_track_correlation_main(args):

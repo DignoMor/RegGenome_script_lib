@@ -70,6 +70,7 @@ class ExogeneousToolTest(unittest.TestCase):
                                   pl_track_npy=self.__sample_pl_track_npy_path, 
                                   mn_track_npy=self.__sample_mn_track_npy_path,
                                   opath=self.__test_dir, 
+                                  jsd_distribution_plot_path=os.path.join(self.__test_dir, "jsd_distribution.png"),
                                   total_count_plot_path=os.path.join(self.__test_dir, "total_count_plot.png"),
                                   )
         
@@ -88,6 +89,13 @@ class ExogeneousToolTest(unittest.TestCase):
                               2.6025302410125732, 
                               2.6089253425598145, 
                               2.606109619140625, 
+                              ], 
+                             )
+            self.assertEqual(ref_mut_dict["combined_ref_mut_jsd"], 
+                             [0.00039108787314035, 
+                              0.007675438188016415, 
+                              0.006458731833845377, 
+                              0.0006233864696696401, 
                               ], 
                              )
 

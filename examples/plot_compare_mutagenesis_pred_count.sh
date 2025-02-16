@@ -14,3 +14,4 @@ scripts/exogeneous_tool.py compare_mutagenesis \
     --mn_track_npy ${INPATH}/sample.exogeneous.chr2.pred_profiles_mn.npy \
     --opath ${OPATH} \
     --total_count_plot_path ${OPATH}/total_count.png \
+    --jsd_distribution_plot_path ${OPATH}/jsd_distribution.png
