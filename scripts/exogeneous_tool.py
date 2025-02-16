@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 from Bio import SeqIO
+from scipy.spatial.distance import jensenshannon
 
 from RGTools.utils import NumpyEncoder
 from RGTools.BedTable import BedTable3, BedTable6Plus
@@ -39,6 +40,12 @@ class ExogeneousTool:
                                                            )
         
         ExogeneousTool.set_parser_compare_mutagenesis(parser_compare_mutagenesis)
+
+        parser_compute_track_correlation = subparsers.add_parser("compute_track_correlation",
+                                                                 help="Compute correlation between tracks.",
+                                                                 )
+        
+        ExogeneousTool.set_parser_compute_track_correlation(parser_compute_track_correlation)
 
     @staticmethod
     def set_parser_metaplot(parser):
@@ -123,6 +130,33 @@ class ExogeneousTool:
                             required=True,
                             )
         
+    @staticmethod
+    def set_parser_compute_track_correlation(parser):
+        parser.add_argument("--pl_track1_npy", 
+                            help="Numpy file for the first plus strand signal.", 
+                            required=True,
+                            )
+
+        parser.add_argument("--pl_track2_npy", 
+                            help="Numpy file for the second plus strand signal.", 
+                            required=True,
+                            )
+        
+        parser.add_argument("--mn_track1_npy",
+                            help="Numpy file for the first minus strand signal.",
+                            default=None,
+                            )
+
+        parser.add_argument("--mn_track2_npy",
+                            help="Numpy file for the second minus strand signal.",
+                            default=None,
+                            )
+        
+        parser.add_argument("--jensenshannon",
+                            help="Output path for the jensenshannon distance.",
+                            default=None,
+                            )
+
     @staticmethod
     def load_fasta(fasta_path):
         '''
@@ -472,6 +506,26 @@ class ExogeneousTool:
                                                                 )
 
     @staticmethod
+    def compute_track_correlation_main(args):
+        # input check
+        if bool(args.mn_track1_npy) ^ bool(args.mn_track2_npy):
+            raise ValueError("Either both or none of the minus strand tracks should be provided.")
+        mn_track_bool = bool(args.mn_track1_npy)
+        
+        # load tracks
+        track1 = np.load(args.pl_track1_npy)
+        track2 = np.load(args.pl_track2_npy)
+
+        if mn_track_bool:
+            track1 = np.concatenate([track1, np.load(args.mn_track1_npy)], axis=0)
+            track2 = np.concatenate([track2, np.load(args.mn_track2_npy)], axis=0)
+
+        # compute correlation
+        if args.jensenshannon:
+            js_dist = jensenshannon(track1, track2, axis=1)
+            np.save(args.jensenshannon, js_dist)
+
+    @staticmethod
     def main(args):
         if args.subcommand == "metaplot":
             ExogeneousTool.metaplot_main(args)
@@ -481,6 +535,9 @@ class ExogeneousTool:
 
         elif args.subcommand == "compare_mutagenesis":
             ExogeneousTool.compare_mutagenesis_main(args)
+
+        elif args.subcommand == "compute_track_correlation":
+            ExogeneousTool.compute_track_correlation_main(args)
 
         else:
             raise NotImplementedError

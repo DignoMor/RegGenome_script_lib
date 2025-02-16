@@ -6,6 +6,8 @@ import json
 import sys
 import os
 
+import numpy as np
+
 from Bio import SeqIO
 
 sys.path.append("scripts")
@@ -88,3 +90,40 @@ class ExogeneousToolTest(unittest.TestCase):
                               2.606109619140625, 
                               ], 
                              )
+
+    def set_up_compute_track_correlation_test(self):
+        self.__pseudosample_pl_track_npy_path = os.path.join(self.__test_dir, "pseudosample_pl_track.npy")
+        self.__pseudosample_mn_track_npy_path = os.path.join(self.__test_dir, "pseudosample_mn_track.npy")
+        pl_track = np.load(self.__sample_pl_track_npy_path)
+        mn_track = np.load(self.__sample_mn_track_npy_path)
+
+        np.random.seed(76)
+        pl_track_rand = pl_track + np.random.normal(0, 0.1, pl_track.shape)
+        mn_track_rand = mn_track + np.random.normal(0, 0.1, mn_track.shape)
+
+        pl_track_rand[pl_track_rand < 0] = 0
+        mn_track_rand[mn_track_rand > 0] = 0
+
+        np.save(self.__pseudosample_pl_track_npy_path, pl_track_rand)
+        np.save(self.__pseudosample_mn_track_npy_path, mn_track_rand)
+
+    def get_compute_track_correlation_default_args(self):
+        args = argparse.Namespace(
+            subcommand="compute_track_correlation",
+            pl_track1_npy=self.__sample_pl_track_npy_path,
+            mn_track1_npy=self.__sample_mn_track_npy_path,
+            pl_track2_npy=self.__pseudosample_pl_track_npy_path,
+            mn_track2_npy=self.__pseudosample_mn_track_npy_path,
+            jensenshannon=os.path.join(self.__test_dir, "js_dist.npy"),
+        )
+        
+        return args
+
+    def test_compute_track_correlation(self):
+        self.set_up_compute_track_correlation_test()
+        args = self.get_compute_track_correlation_default_args()
+        ExogeneousTool.main(args)
+
+        js_dist = np.load(args.jensenshannon)
+        self.assertEqual(js_dist.shape, (116, ))
+        self.assertAlmostEqual(js_dist[0], 0.281159880, places=4)
