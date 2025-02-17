@@ -220,7 +220,7 @@ class GenomicElementTool:
             if args.override_strand:
                 strand = args.override_strand
             else:
-                strand = region["strand"]
+                strand = "." if args.region_file_type == "bed3" else region["strand"]
 
             output_list.append(bw_track.count_single_region(region["chrom"],
                                                             region["start"],
