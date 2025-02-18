@@ -36,6 +36,12 @@ class GenomicElementTool:
         
         GenomicElementTool.set_parser_bed2tssbed(parser_bed2tssbed)
 
+        parser_onehot = subparsers.add_parser("onehot",
+                                              help="One-hot encode the sequence. Only support elements of the same size.",
+                                              )
+        
+        GenomicElementTool.set_parser_onehot(parser_onehot)
+
     @staticmethod
     def set_parser_count_bw(parser):
         GenomicElements.set_parser_genomic_element_region(parser)
@@ -129,6 +135,17 @@ class GenomicElementTool:
                             type=str, 
                             )
 
+    def set_parser_onehot(parser):
+        GenomicElements.set_parser_genome(parser)
+        GenomicElements.set_parser_genomic_element_region(parser)
+
+        parser.add_argument("--opath",
+                            help="Output path for the one-hot encoded sequence.",
+                            type=str,
+                            required=True,
+                            )
+
+
     @staticmethod
     def get_bed2tssbed_output_site_types():
         return ["TSS", "center"]
@@ -167,6 +184,8 @@ class GenomicElementTool:
             GenomicElementTool.pad_region_main(args)
         elif args.subcommand == "bed2tssbed":
             GenomicElementTool.bed2tssbed_main(args)
+        elif args.subcommand == "onehot":
+            GenomicElementTool.onehot_main(args)
         else:
             raise ValueError("Unknown subcommand: {}".format(args.subcommand))
 
@@ -258,6 +277,16 @@ class GenomicElementTool:
         output_bt = region_bt._clone_empty()
         output_bt.load_from_dataframe(output_df)
         output_bt.write(args.opath)
+
+    @staticmethod
+    def onehot_main(args):
+        genomic_elements = GenomicElements(region_path=args.region_file_path,
+                                           region_file_type=args.region_file_type,
+                                           fasta_path=args.fasta_path, 
+                                           )
+
+        output_arr = genomic_elements.get_all_region_one_hot()
+        np.save(args.opath, output_arr)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Genomic element tool.")
