@@ -160,6 +160,13 @@ class GenomicElementToolTest(unittest.TestCase):
 
         with self.assertRaises(InvalidBedRegionException):
             GenomicElementTool.pad_region_main(args)
+        
+        # test drop
+        args.method_resolving_invalid_region = "drop"
+        GenomicElementTool.pad_region_main(args)
+        output_bt = BedTable6()
+        output_bt.load_from_file(args.opath)
+        self.assertEqual(len(output_bt), 0)
 
     def get_bed2tssbed_simple_args(self):
         args = argparse.Namespace()

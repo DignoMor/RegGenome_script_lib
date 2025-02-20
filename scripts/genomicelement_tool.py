@@ -115,7 +115,7 @@ class GenomicElementTool:
                             help="Method to resolve invalid region after padding.", 
                             type=str,
                             default="fallback",
-                            choices=["raise", "fallback"],
+                            choices=["raise", "fallback", "drop"],
                             )
 
     @staticmethod
@@ -198,7 +198,7 @@ class GenomicElementTool:
         
         region_bt = genomic_elements.get_region_bed_table()
 
-        output_region_df = region_bt.to_dataframe()
+        output_dict_list = []
 
         for i, region in enumerate(region_bt.iter_regions()):
             try:
@@ -211,13 +211,17 @@ class GenomicElementTool:
                     raise e
                 elif args.method_resolving_invalid_region == "fallback":
                     new_region = region
+                elif args.method_resolving_invalid_region == "drop":
+                    continue
                 else:
                     raise ValueError(f"Unknown method to resolve invalid region: {args.method_resolving_invalid_region}")
 
-            output_region_df.loc[i] = new_region.to_dict()
+            output_dict_list.append(new_region.to_dict())
         
         output_region_bt = region_bt._clone_empty()
-        output_region_bt.load_from_dataframe(output_region_df)
+        output_region_bt.load_from_dataframe(pd.DataFrame(output_dict_list,
+                                                          columns=region_bt.column_names,
+                                                          ))
             
         output_region_bt.write(args.opath)
 
