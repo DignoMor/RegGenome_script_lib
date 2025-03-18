@@ -43,11 +43,12 @@ class FilterBw:
         for chrom in chrom_size_df["chrom"]:
             if chrom in input_bw.chroms():
                 intervals = input_bw.intervals(chrom)
-                output_bw.addEntries([chrom] * len(intervals),
-                                    [e[0] for e in intervals],
-                                    ends=[e[1] for e in intervals],
-                                    values=[e[2] for e in intervals],
-                                    )
+                if intervals:
+                    output_bw.addEntries([chrom] * len(intervals),
+                                        [e[0] for e in intervals],
+                                        ends=[e[1] for e in intervals],
+                                        values=[e[2] for e in intervals],
+                                        )
             else:
                 sys.stderr.write(f"WARNING: Chrom {chrom} not found in {args.inpath}\n")
 
