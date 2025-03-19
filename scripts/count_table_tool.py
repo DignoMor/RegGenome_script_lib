@@ -365,7 +365,7 @@ class CountTableTool:
         if len(region_info_df.columns) == 6:
             init_output_bt = lambda: BedTable6()
         else:
-            init_output_bt = lambda: BedTable6Plus(extra_column_names=region_info_df.columns[6:], 
+            init_output_bt = lambda: BedTable6Plus(extra_column_names=list(region_info_df.columns[6:]), 
                                                    extra_column_dtype=[str] * (len(region_info_df.columns) - 6),
                                                    )
 
