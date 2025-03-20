@@ -118,6 +118,12 @@ class CountTableTool:
                             dest="tissue_labels", 
                             )
 
+        parser.add_argument("--missing",
+                            help="Method for handling missing values.",
+                            default="raise",
+                            choices=["raise", "drop"],
+                            )
+
         parser.add_argument("--opath", 
                             help="Output path for tstat table.", 
                             default="stdout", 
@@ -251,7 +257,7 @@ class CountTableTool:
         return None
     
     @staticmethod
-    def compute_tstat_one_elem(X, Y):
+    def compute_tstat_one_elem(X, Y, missing="raise"):
         '''
         Compute t-statistics for one element.
         Adapted from You Chen's script.
@@ -261,10 +267,20 @@ class CountTableTool:
           n being the number of sampels. For each sample, X has value 
           1 for the tissue of interest and -1 for other tissues. 
         - Y: expression matrix. np.array with shape (n, 1).
+        - missing: method handling missing values.
         '''
         X_df = pd.DataFrame(X, columns=["X1"])
         X_df = sm.add_constant(X_df["X1"])
-        model = sm.OLS(Y, X_df).fit()
+
+        # Return np.nan if Y is all nan
+        if np.all(np.isnan(Y)):
+            return np.nan
+
+        # Return np.nan if X is singular after removing nans
+        if not np.linalg.matrix_rank(X_df.loc[~np.isnan(Y)]) > 1:
+            return np.nan
+
+        model = sm.OLS(Y, X_df, missing=missing).fit()
         t = model.tvalues["X1"]
         return t
 
@@ -347,7 +363,10 @@ class CountTableTool:
                 elem_info = row[1]
                 Y = elem_info.values
 
-                tstat = CountTableTool.compute_tstat_one_elem(X, Y)
+                tstat = CountTableTool.compute_tstat_one_elem(X, 
+                                                              Y, 
+                                                              missing=args.missing, 
+                                                              )
                 output_array[elem_ind, tissue_ind] = tstat
 
         output_df = pd.DataFrame(output_array,

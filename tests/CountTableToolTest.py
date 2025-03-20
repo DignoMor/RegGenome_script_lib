@@ -32,6 +32,7 @@ class CountTableToolTest(unittest.TestCase):
 
         self.__rsem_count_table = os.path.join(self.__test_dir, "rsem_count_table.csv")
         self.__rsem_count_table_multi_rep = os.path.join(self.__test_dir, "rsem_count_table_multi_rep.csv")
+        self.__rsem_count_table_multi_rep_with_nan = os.path.join(self.__test_dir, "rsem_count_table_multi_rep_with_nan.csv")
         self.__rsem_region_info = os.path.join(self.__test_dir, "rsem.region_info.bed")
 
         self._gen_rsem_count_table()
@@ -67,6 +68,15 @@ class CountTableToolTest(unittest.TestCase):
 
         rsem_count_table.to_csv(self.__rsem_count_table_multi_rep)
 
+        # make a copy with nan
+
+        rsem_count_table_with_nan = rsem_count_table.copy()
+        rsem_count_table_with_nan.loc["ENSG00000243485.5", "sample1_rep1"] = np.nan
+        rsem_count_table_with_nan.loc["ENSG00000182484.15_PAR_Y", "sample2_rep1"] = np.nan
+        rsem_count_table_with_nan.loc["ENSG00000182484.15_PAR_Y", "sample2_rep2"] = np.nan
+
+        rsem_count_table_with_nan.to_csv(self.__rsem_count_table_multi_rep_with_nan)
+
         # make a temp region info file
         region_info = pd.DataFrame({"chrom": ["chromUn"] * rsem_count_table.shape[0],
                                     "start": range(rsem_count_table.shape[0]), 
@@ -83,6 +93,7 @@ class CountTableToolTest(unittest.TestCase):
         args = argparse.Namespace(subcommand="compute_tissue_tstat",
                                   inpath=self.__rsem_count_table_multi_rep,
                                   tissue_labels="1,1,2,2", 
+                                  missing="raise", 
                                   opath=os.path.join(self.__test_dir, "tissue_tstat.csv"),
                                   )
         
@@ -95,6 +106,19 @@ class CountTableToolTest(unittest.TestCase):
         result_df = CountTableTool.read_input_df(args.opath)
         self.assertAlmostEqual(result_df.loc["ENSG00000185920.16", "1"], -28.831860, places=3)
     
+    def test_compute_tissue_tstat_main_w_nan(self):
+        compute_tissue_tstat_args = self.get_compute_tissue_tstat_args()
+        compute_tissue_tstat_args.missing = "drop"
+
+        compute_tissue_tstat_args.inpath = self.__rsem_count_table_multi_rep_with_nan
+
+        CountTableTool.main(compute_tissue_tstat_args)
+
+        result_df = CountTableTool.read_input_df(compute_tissue_tstat_args.opath)
+        self.assertAlmostEqual(result_df.loc["ENSG00000185920.16", "1"], -28.831860, places=3)
+        self.assertAlmostEqual(result_df.loc["ENSG00000243485.5", "1"], -0.577350, places=3)
+        self.assertTrue(np.isnan(result_df.loc["ENSG00000182484.15_PAR_Y", "1"]))
+
     def get_tstat_table2bed_args(self):
         args = argparse.Namespace(subcommand="tstat_table2bed",
                                   inpath=os.path.join(self.__test_dir, "tissue_tstat.csv"),
@@ -118,4 +142,3 @@ class CountTableToolTest(unittest.TestCase):
                                               ))
 
         self.assertEqual(output_bt.get_start_locs()[1], 19)
-
