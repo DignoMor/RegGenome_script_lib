@@ -384,8 +384,9 @@ class CountTableTool:
         if len(region_info_df.columns) == 6:
             init_output_bt = lambda: BedTable6()
         else:
-            init_output_bt = lambda: BedTable6Plus(extra_column_names=list(region_info_df.columns[6:]), 
-                                                   extra_column_dtype=[str] * (len(region_info_df.columns) - 6),
+            extra_columns = [c for c in region_info_df.columns if c not in ["chrom", "start", "end", "name", "score", "strand"]]
+            init_output_bt = lambda: BedTable6Plus(extra_column_names=extra_columns, 
+                                                   extra_column_dtype=[str] * (len(extra_columns)),
                                                    )
 
         for cellline in input_df.columns:
