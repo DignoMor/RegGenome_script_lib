@@ -120,7 +120,7 @@ class CountTableToolTest(unittest.TestCase):
         self.assertTrue(np.isnan(result_df.loc["ENSG00000182484.15_PAR_Y", "1"]))
 
     def get_tstat_table2bed_args(self):
-        args = argparse.Namespace(subcommand="tstat_table2bed",
+        args = argparse.Namespace(subcommand="count_table2bed",
                                   inpath=os.path.join(self.__test_dir, "tissue_tstat.csv"),
                                   percentage=0.2, 
                                   opath=self.__test_dir, 
@@ -138,7 +138,7 @@ class CountTableToolTest(unittest.TestCase):
 
         output_bt = BedTable6()
         output_bt.load_from_file(os.path.join(tstat_table2bed_args.opath, 
-                                              "1.tstat_top.20%.bed", 
+                                              "1.top.20%.bed", 
                                               ))
 
         self.assertEqual(output_bt.get_start_locs()[1], 19)

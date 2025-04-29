@@ -27,8 +27,8 @@ class CountTableTool:
             CountTableTool.divide_table_main(args)
         elif args.subcommand == "compute_tissue_tstat":
             CountTableTool.compute_tissue_tstat_main(args)
-        elif args.subcommand == "tstat_table2bed":
-            CountTableTool.tstat_table2bed_main(args)
+        elif args.subcommand == "count_table2bed":
+            CountTableTool.count_table2bed_main(args)
         else:
             raise ValueError("Invalid subcommand.")
 
@@ -67,11 +67,11 @@ class CountTableTool:
         
         CountTableTool.set_parser_compute_tissue_tstat(parser_compute_tissue_tstat)
 
-        parser_tstat_table2bed = subparsers.add_parser("tstat_table2bed",
+        parser_count_table2bed = subparsers.add_parser("count_table2bed",
                                                        help="Convert tstat table to bed file.",
                                                        )
         
-        CountTableTool.set_parser_tstat_table2bed(parser_tstat_table2bed)
+        CountTableTool.set_parser_count_table2bed(parser_count_table2bed)
 
     @staticmethod
     def set_parser_per_million_normalization(parser):
@@ -194,30 +194,30 @@ class CountTableTool:
 
 
     @staticmethod
-    def set_parser_tstat_table2bed(parser_tstat_table2bed):
+    def set_parser_count_table2bed(parser_count_table2bed):
         '''
         Convert tstat table to bed file.
         '''
-        parser_tstat_table2bed.add_argument("--inpath", "-I", 
+        parser_count_table2bed.add_argument("--inpath", "-I", 
                                             help="Input path for tstat table.", 
                                             required=True, 
                                             dest="inpath", 
                                             )
         
-        parser_tstat_table2bed.add_argument("--opath", "-O",
+        parser_count_table2bed.add_argument("--opath", "-O",
                                             help="Output path for bed file.", 
                                             default="stdout", 
                                             dest="opath", 
                                             )
         
-        parser_tstat_table2bed.add_argument("--percentage",
+        parser_count_table2bed.add_argument("--percentage",
                                             help="Percentage of top tstat to be included in the bed file.", 
                                             default=0.2, 
                                             type=float, 
                                             dest="percentage", 
                                             )
         
-        parser_tstat_table2bed.add_argument("--region_info",
+        parser_count_table2bed.add_argument("--region_info",
                                             help="Path to region info csv.", 
                                             required=True, 
                                             dest="region_info", 
@@ -377,7 +377,7 @@ class CountTableTool:
         CountTableTool.write_output_df(output_df, args.opath)
 
     @staticmethod
-    def tstat_table2bed_main(args):
+    def count_table2bed_main(args):
         input_df = CountTableTool.read_input_df(args.inpath)
         region_info_df = CountTableTool.read_region_info_df(args.region_info)
 
@@ -390,15 +390,15 @@ class CountTableTool:
                                                    )
 
         for cellline in input_df.columns:
-            tstats = input_df[cellline].values
-            tstats = tstats[~ np.isnan(tstats)]
-            cutoff = np.percentile(tstats, 100 - args.percentage * 100)
+            stats = input_df[cellline].values
+            stats = stats[~ np.isnan(stats)]
+            cutoff = np.percentile(stats, 100 - args.percentage * 100)
             regions_to_keep = input_df[input_df[cellline] > cutoff].index
 
             output_bt = init_output_bt()
             output_bt.load_from_dataframe(region_info_df.loc[regions_to_keep, :])
             output_bt.write(os.path.join(args.opath, 
-                                         cellline + ".tstat_top.{:d}%.bed".format(int(args.percentage * 100)), 
+                                         cellline + ".top.{:d}%.bed".format(int(args.percentage * 100)), 
                                          ))
 
 if __name__ == "__main__":
