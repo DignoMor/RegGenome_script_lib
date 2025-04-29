@@ -293,7 +293,10 @@ class GenomicElementTool:
         np.save(args.opath, output_arr)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Genomic element tool.")
+    parser = argparse.ArgumentParser(description="WARNING: DEPRECATED! " 
+                                                 "Please use https://github.com/DignoMor/GenomicElementTool "
+                                                 "for the same functionality.", 
+                                    )
     GenomicElementTool.set_parser(parser)
     args = parser.parse_args()
     GenomicElementTool.main(args)
