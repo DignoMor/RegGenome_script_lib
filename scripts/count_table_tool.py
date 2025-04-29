@@ -29,6 +29,8 @@ class CountTableTool:
             CountTableTool.compute_tissue_tstat_main(args)
         elif args.subcommand == "count_table2bed":
             CountTableTool.count_table2bed_main(args)
+        elif args.subcommand == "combine_tissue_counts":
+            CountTableTool.combine_tissue_counts_main(args)
         else:
             raise ValueError("Invalid subcommand.")
 
@@ -72,6 +74,12 @@ class CountTableTool:
                                                        )
         
         CountTableTool.set_parser_count_table2bed(parser_count_table2bed)
+
+        parser_combine_tissue_counts = subparsers.add_parser("combine_tissue_counts",
+                                                             help="Combine tissue counts.",
+                                                             )
+
+        CountTableTool.set_parser_combine_tissue_counts(parser_combine_tissue_counts)
 
     @staticmethod
     def set_parser_per_million_normalization(parser):
@@ -129,6 +137,9 @@ class CountTableTool:
                             default="stdout", 
                             dest="opath", 
                             )
+
+    def set_parser_combine_tissue_counts(parser):
+        CountTableTool.set_parser_compute_tissue_tstat(parser)
 
     def set_parser_divide_table(parser):
         parser.add_argument("--inpath_numerator",
@@ -368,6 +379,42 @@ class CountTableTool:
                                                               missing=args.missing, 
                                                               )
                 output_array[elem_ind, tissue_ind] = tstat
+
+        output_df = pd.DataFrame(output_array,
+                                 index=input_df.index,
+                                 columns=unique_tissues,
+                                 )
+
+        CountTableTool.write_output_df(output_df, args.opath)
+
+    @staticmethod
+    def combine_tissue_counts_main(args):
+        input_df = CountTableTool.read_input_df(args.inpath)
+        if not args.tissue_labels:
+            tissue_labels = np.array(input_df.columns)
+        else:
+            tissue_labels = np.array(args.tissue_labels.split(","))
+
+        unique_tissues = np.unique(tissue_labels)
+
+        output_array = np.zeros((input_df.shape[0], len(unique_tissues)))
+
+        for tissue_ind, tissue in enumerate(unique_tissues):
+            X = tissue_labels == tissue
+            X = np.array([1 if x else -1 for x in X])
+
+            for elem_ind, row in enumerate(input_df.iterrows()):
+                elem = row[0]
+                elem_info = row[1]
+                elem_counts = elem_info.values
+
+                if np.all(np.isnan(elem_counts)):
+                    output_array[elem_ind, tissue_ind] = np.nan
+                else:
+                    num_nan = np.sum(np.isnan(elem_counts))
+                    num_data = len(elem_counts) - num_nan
+                    count_sum = np.sum(elem_counts[~np.isnan(elem_counts)])/num_data * len(elem_counts)
+                    output_array[elem_ind, tissue_ind] = count_sum
 
         output_df = pd.DataFrame(output_array,
                                  index=input_df.index,
