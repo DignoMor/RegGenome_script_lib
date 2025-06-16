@@ -28,10 +28,17 @@ class SplitFragments:
 
     @staticmethod
     def main(args):
-        fragment_df = pd.read_csv(args.fragments, 
-                                  sep="\t", 
-                                  names=["chrom", "start", "end", "barcode", "support"], 
-                                  )
+        if args.fragments.endswith(".gz"):
+            fragment_df = pd.read_csv(args.fragments, 
+                                      sep="\t", 
+                                      names=["chrom", "start", "end", "barcode", "support"], 
+                                      compression="gzip", 
+                                      )
+        else:
+            fragment_df = pd.read_csv(args.fragments, 
+                                    sep="\t", 
+                                    names=["chrom", "start", "end", "barcode", "support"], 
+                                    )
 
         label_df = pd.read_csv(args.label_file, 
                                sep="\t", 
