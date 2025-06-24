@@ -46,6 +46,7 @@ class MergeMultiBwTest(unittest.TestCase):
                                   opath=os.path.join(self.__test_dir, "test_out.bw"),
                                   chrom_size=self.__chrom_size_path,
                                   verbose=False,
+                                  n_threads=16,
                                   )
 
     def test_main(self):

@@ -6,6 +6,7 @@ import sys
 import shutil
 import argparse
 import pandas as pd
+import concurrent.futures
 
 from RGTools import utils
 
@@ -32,6 +33,12 @@ class MergeMultiBw:
                             help="Whether to write log to stderr. (False)", 
                             default=False, 
                             type=utils.str2bool,
+                            )
+        
+        parser.add_argument("--n_threads",
+                            help="Number of threads for parallel merging (default: 4)",
+                            type=int,
+                            default=4, 
                             )
     
     @staticmethod
@@ -106,7 +113,7 @@ class MergeMultiBw:
 
     @staticmethod
     def merge_bw_files(rep_bw_paths, chroms, chrom_sizes,
-                       opath, verbose=False):
+                       opath, verbose=False, n_threads=4):
         num_bw_files = len(rep_bw_paths)
 
         if num_bw_files < 2:
@@ -131,6 +138,11 @@ class MergeMultiBw:
             merged_bw = pyBigWig.open(temp_path, "w")
             merged_bw.addHeader([(c, s) for c, s in zip(chroms, chrom_sizes)])
 
+            # Prepare tasks for parallel merging
+            merge_tasks = []
+            merge_results = {}
+            chrom_info = []  # (chrom, chrom_length, rep1_chrom_intervals, rep2_chrom_intervals)
+
             for chrom, chrom_length in zip(chroms, chrom_sizes):
 
                 #TODO: better fix for invalid interval error
@@ -148,25 +160,39 @@ class MergeMultiBw:
                 if rep2_chrom_intervals is None:
                     rep2_chrom_intervals = ()
 
-                if verbose:
-                    sys.stderr.write("Merging {}...\n".format(chrom))
+                chrom_info.append((chrom, chrom_length, rep1_chrom_intervals, rep2_chrom_intervals))
 
-                # In case of empty chromosomes, no combining is needed
-                if len(rep1_chrom_intervals) == 0 and len(rep2_chrom_intervals) == 0:
-                    pass
-                elif len(rep1_chrom_intervals) == 0 and len(rep2_chrom_intervals) != 0:
-                    merged_interval_list = rep2_chrom_intervals
-                elif len(rep1_chrom_intervals) != 0 and len(rep2_chrom_intervals) == 0:
-                    merged_interval_list = rep1_chrom_intervals
-                else:
-                    merged_interval_list = MergeMultiBw.combine_bw_intervals(rep1_chrom_intervals,
-                                                                             rep2_chrom_intervals,
-                                                                             chrom_length,
-                                                                             verbose=verbose)
+            # Parallelize only the merging case
+            with concurrent.futures.ProcessPoolExecutor(max_workers=n_threads) as executor:
+                future_to_chrom = {}
+                for idx, (chrom, chrom_length, rep1_chrom_intervals, rep2_chrom_intervals) in enumerate(chrom_info):
+                    if verbose:
+                        sys.stderr.write(f"Merging {chrom}...\n")
+                    if len(rep1_chrom_intervals) == 0 and len(rep2_chrom_intervals) == 0:
+                        merge_results[idx] = []
+                    elif len(rep1_chrom_intervals) == 0 and len(rep2_chrom_intervals) != 0:
+                        merge_results[idx] = rep2_chrom_intervals
+                    elif len(rep1_chrom_intervals) != 0 and len(rep2_chrom_intervals) == 0:
+                        merge_results[idx] = rep1_chrom_intervals
+                    else:
+                        # Submit to executor
+                        future = executor.submit(MergeMultiBw.combine_bw_intervals,
+                                                rep1_chrom_intervals,
+                                                rep2_chrom_intervals,
+                                                chrom_length,
+                                                verbose, 
+                                                )
+                        future_to_chrom[future] = idx
+                        
+                # Collect parallel results
+                for future in concurrent.futures.as_completed(future_to_chrom):
+                    idx = future_to_chrom[future]
+                    merge_results[idx] = future.result()
 
-                if len(rep1_chrom_intervals) == 0 and len(rep2_chrom_intervals) == 0:
-                    pass
-                else:
+            # Write results in chrom order
+            for idx, (chrom, chrom_length, _, _) in enumerate(chrom_info):
+                merged_interval_list = merge_results.get(idx, [])
+                if merged_interval_list:
                     merged_bw.addEntries([chrom] * len(merged_interval_list),
                                         [e[0] for e in merged_interval_list],
                                         ends=[e[1] for e in merged_interval_list],
@@ -197,6 +223,7 @@ class MergeMultiBw:
                                     chrom_sizes=chrom_size_df['size'].values,
                                     opath=args.opath, 
                                     verbose=args.verbose,
+                                    n_threads=args.n_threads,
                                     )
 
 
