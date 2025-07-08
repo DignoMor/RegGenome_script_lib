@@ -259,6 +259,17 @@ class CountTableTool:
             raise ValueError("Index mismatch.")
 
         return None
+    
+    @staticmethod
+    def check_region_info_df(region_info_df, input_index):
+        '''
+        Check if the index of region info df matches the index of input df.
+        The input index should be a subset of the region info index.
+        '''
+        if not np.array([ind in region_info_df.index for ind in input_index]).all():
+            raise ValueError("Input index is not a subset of region info index.")
+
+        return None
 
     @staticmethod
     def check_column_match(df1, df2):
@@ -320,9 +331,9 @@ class CountTableTool:
         input_df = CountTableTool.read_input_df(args.inpath)
         region_info_df = CountTableTool.read_region_info_df(args.region_info_path)
 
-        CountTableTool.check_index_match(input_df, region_info_df)
+        CountTableTool.check_region_info_df(region_info_df, input_df.index)
 
-        new_ids = region_info_df[args.gene_id_col].values
+        new_ids = region_info_df.loc[input_df.index, args.gene_id_col].values
         output_df = input_df.set_index(new_ids, 
                                        drop=True, 
                                        inplace=False, 
