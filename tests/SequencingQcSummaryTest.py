@@ -21,7 +21,16 @@ class SequencingQcSummaryTest(unittest.TestCase):
 
         self.__flagstat_file_list = [os.path.join(self.__sample_data_dir, "sample.bam_flagstat.txt")]
         self.__fastp_json_file_list = [os.path.join(self.__sample_data_dir, "fastp.json")]
+        self.__bw_pl_file_list = [os.path.join(self.__sample_data_dir, "ENCFF993VCR.pl.bigWig")]
+        self.__bw_mn_file_list = [os.path.join(self.__sample_data_dir, "ENCFF182TPF.mn.bigWig")]
+        self.__chrom_sizes = os.path.join(self.__temp_dir, "hg38.chrom.sizes")
+
         self.__sample_list = ["sample1"]
+
+        pd.DataFrame({"chr": ["chr1", "chr2", "chr3", "chr4", "chr5"],
+                      "size": [248956422, 242193529, 198295559, 190214555, 181538259],
+                      }).to_csv(self.__chrom_sizes, sep="\t", index=False, header=False)
+
         return super().setUp()
     
     def tearDown(self) -> None:
@@ -79,6 +88,30 @@ class SequencingQcSummaryTest(unittest.TestCase):
         self.assertAlmostEqual(output_df.loc["fastp_percentage_too_many_N", "sample1"], 14740 / 16763944)
         self.assertAlmostEqual(output_df.loc["fastp_percentage_too_short", "sample1"], 19868 / 16763944)
         self.assertAlmostEqual(output_df.loc["fastp_percentage_too_long", "sample1"], 0.0)
+
+    def test_bw_qc_main(self):
+        args = argparse.Namespace(
+            sample = self.__sample_list,
+            bw_pl = self.__bw_pl_file_list,
+            bw_mn = self.__bw_mn_file_list,
+            opath =  os.path.join(self.__temp_dir, "bw_qc_summary.txt"), 
+            output_header = False,
+            statistic = "total_counts",
+            output_field_name = "bw_total_counts",
+            chrom_sizes = self.__chrom_sizes,
+            )
+        
+        SequencingQcSummary.bw_qc_main(args)
+
+        output_df = pd.read_csv(args.opath, 
+                                sep="\t", 
+                                names=args.sample,
+                                index_col=0,
+                                )
+
+        self.assertEqual(output_df.shape[0], 1)
+        self.assertEqual(output_df.shape[1], 1)
+        self.assertEqual(output_df.loc["bw_total_counts", "sample1"], 3957852.00)
 
     def test_main(self):
         pass

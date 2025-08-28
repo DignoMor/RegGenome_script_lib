@@ -7,6 +7,7 @@ import argparse
 import pandas as pd
 
 from RGTools.utils import str2bool
+from RGTools.BwTrack import SingleBwTrack, PairedBwTrack
 
 class SequencingQcSummary:
     '''
@@ -141,7 +142,38 @@ class SequencingQcSummary:
                                         help="Output field name for the flagstat QC info.",
                                         type=str,
                                         )
-                                    
+    
+    @staticmethod
+    def set_bw_qc_parser(bw_qc_parser):
+        SequencingQcSummary.set_general_parser_arguments(bw_qc_parser)
+
+        bw_qc_parser.add_argument("--bw_pl",
+                                  help="Path to bigwig file for the sample.",
+                                  action="append",
+                                  type=str,
+                                  )
+
+        bw_qc_parser.add_argument("--bw_mn",
+                                  help="Path to bigwig file for the sample.",
+                                  action="append",
+                                  type=str,
+                                  )
+        
+        bw_qc_parser.add_argument("--statistic",
+                                  help="Statistic to be checked.",
+                                  type=str,
+                                  )
+        
+        bw_qc_parser.add_argument("--chrom_sizes",
+                                  help="Path to chrom sizes file.",
+                                  type=str,
+                                  )
+        
+        bw_qc_parser.add_argument("--output_field_name",
+                                  help="Output field name for the bw QC info.",
+                                  type=str,
+                                  )
+        
     @staticmethod
     def set_parser(parser):
         subparsers = parser.add_subparsers(dest="command")
@@ -154,6 +186,9 @@ class SequencingQcSummary:
 
         flagstat_qc_parser = subparsers.add_parser("flagstat_qc", help="QC flagstat files.")
         SequencingQcSummary.set_flagstat_qc_parser(flagstat_qc_parser)
+
+        bw_qc_parser = subparsers.add_parser("bw_qc", help="QC bigwig files.")
+        SequencingQcSummary.set_bw_qc_parser(bw_qc_parser)
 
     @staticmethod
     def read_flagstat(flagstat_path):
@@ -247,6 +282,34 @@ class SequencingQcSummary:
         return info_dict
     
     @staticmethod
+    def calculate_bw_statistic(bw_pl, bw_mn, chrom_sizes, statistic):
+        '''
+        Calculate the statistic for a bigwig file.
+        '''
+        chrom_size_df = pd.read_csv(chrom_sizes, sep="\t", header=None, names=["chr", "size"])
+
+        if statistic == "total_counts":
+            if not bw_mn:
+                bw_track = SingleBwTrack(bw_pl)
+            else:
+                bw_track = PairedBwTrack(bw_pl, bw_mn)
+            
+            output_stat = 0
+
+            for _, row in chrom_size_df.iterrows():
+                chrom = row["chr"]
+                chrom_size = row["size"]
+
+                output_stat += bw_track.count_single_region(chrom, 
+                                                            0, 
+                                                            chrom_size, 
+                                                            output_type="raw_count", 
+                                                            strand=".", 
+                                                            )
+
+            return output_stat
+
+    @staticmethod
     def trim_qc_main(trim_qc_args):
         '''
         Main function for QC trimming results.
@@ -320,6 +383,24 @@ class SequencingQcSummary:
         else:
             df.to_csv(opath, sep="\t", index=False, **kwargs)
 
+
+    @staticmethod
+    def bw_qc_main(bw_qc_args):
+        '''
+        Main function for bw QC results.
+        '''
+        result_df = pd.DataFrame(columns=["field"] + bw_qc_args.sample)
+        result_df.loc[0, "field"] = bw_qc_args.output_field_name
+
+        for sample, bw_pl, bw_mn in zip(bw_qc_args.sample, bw_qc_args.bw_pl, bw_qc_args.bw_mn):
+            bw_stat = SequencingQcSummary.calculate_bw_statistic(bw_pl, bw_mn, bw_qc_args.chrom_sizes, bw_qc_args.statistic)
+            result_df.loc[0, sample] = bw_stat
+
+        SequencingQcSummary.output_df(result_df,
+                                      bw_qc_args.opath,
+                                      header=bw_qc_args.output_header,
+                                      )
+
     @staticmethod
     def main(args) -> None:
         '''
@@ -337,6 +418,8 @@ class SequencingQcSummary:
             SequencingQcSummary.alignmenet_qc_main(args)
         if args.command == "flagstat_qc":
             SequencingQcSummary.flagstat_qc_main(args)
+        if args.command == "bw_qc":
+            SequencingQcSummary.bw_qc_main(args)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
