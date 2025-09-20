@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import pandas as pd
 
+from RGTools.utils import str2bool
 
 class SampleBw:
     @staticmethod
@@ -21,6 +22,13 @@ class SampleBw:
                             help="Sample rate to sample the bigwig file.", 
                             required=True, 
                             type=float, 
+                            )
+
+        parser.add_argument("--negative_signal", 
+                            help="If to sample signal is nagated.", 
+                            required=False, 
+                            type=str2bool, 
+                            default=False, 
                             )
 
         parser.add_argument("--chrom_size", "-C", 
@@ -58,7 +66,7 @@ class SampleBw:
         total_counts = 0
 
         for chrom in input_bw.chroms():
-            total_counts += np.sum([e[2] for e in input_bw.intervals(chrom)])
+            total_counts += np.sum([abs(e[2]) for e in input_bw.intervals(chrom)])
 
         for chrom in chrom_size_df["chrom"]:
             if chrom in input_bw.chroms():
@@ -67,8 +75,11 @@ class SampleBw:
                 ends = []
                 values = []
                 for interval in intervals:
-                    count_frac = interval[2] / total_counts
+                    count_frac = abs(interval[2]) / total_counts
                     new_count = np.random.binomial(total_counts * args.sample_rate, count_frac)
+
+                    if args.negative_signal:
+                        new_count = -new_count
 
                     if not (new_count == 0):
                         starts.append(interval[0])

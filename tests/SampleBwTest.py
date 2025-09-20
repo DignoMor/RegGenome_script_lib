@@ -48,6 +48,7 @@ class SampleBwTest(unittest.TestCase):
                                   chrom_size=self.__chrom_size_path,
                                   seed=123,
                                   opath=os.path.join(self.__test_dir, "test_out.bw"),
+                                  negative_signal=False,
                                   )
 
     def test_main(self):
@@ -76,3 +77,21 @@ class SampleBwTest(unittest.TestCase):
         output_bw.close()
 
         input_bw.close()
+    
+    def test_negative_signal(self):
+        args = self.get_simple_args()
+        args.negative_signal = True
+        args.inpath="sample_data/ENCFF182TPF.mn.bigWig"
+        SampleBw.main(args)
+
+        input_bw = pyBigWig.open(args.inpath)
+        output_bw = pyBigWig.open(args.opath)
+
+        self.assertTrue(len(output_bw.intervals("chr1")) < len(input_bw.intervals("chr1")))
+        sampled_ratio = np.sum([e[2] for e in output_bw.intervals("chr2")]) / np.sum([e[2] for e in input_bw.intervals("chr2")])
+        self.assertAlmostEqual(sampled_ratio, args.sample_rate, places=1)
+        self.assertEqual(output_bw.intervals("chr1")[1000][2], -7)
+        output_bw.close()
+
+        input_bw.close()
+
