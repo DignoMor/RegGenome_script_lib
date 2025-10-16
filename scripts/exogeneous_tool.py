@@ -459,10 +459,7 @@ class ExogeneousTool:
 
     @staticmethod
     def filter_main(args):
-        exogeneous_seq = ExogeneousSequences(args.region_file_path, 
-                                             args.region_file_type, 
-                                             args.fasta,
-                                             )
+        exogeneous_seq = ExogeneousSequences(args.fasta)
         region_bt = exogeneous_seq.get_region_bed_table()
 
         output_bt = region_bt._clone_empty()
@@ -489,10 +486,7 @@ class ExogeneousTool:
 
     @staticmethod
     def compare_mutagenesis_main(args):
-        exogeneous_seq = ExogeneousSequences(args.region_file_path, 
-                                             args.region_file_type, 
-                                             args.fasta,
-                                             )
+        exogeneous_seq = ExogeneousSequences(args.fasta)
 
         region_bt = exogeneous_seq.get_region_bed_table()
         region_bt_w_anno = ExogeneousTool.match_ref_mut_regex(region_bt,
