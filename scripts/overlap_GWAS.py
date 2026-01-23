@@ -9,6 +9,7 @@ import os
 import numpy as np
 
 from RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
+from RGTools.GenomicElements import GenomicElements
 
 class OverlapGWAS:
     @staticmethod
@@ -57,7 +58,7 @@ class OverlapGWAS:
 
     @staticmethod
     def get_region_file_types():
-        return ["bed6", "bed3"]
+        return ["bed6", "bed3", "narrowPeak"]
 
     @staticmethod
     def load_region_file(region_path, region_file_type):
@@ -75,6 +76,8 @@ class OverlapGWAS:
             bt = BedTable6()
         elif region_file_type == "bed3":
             bt = BedTable3()
+        elif region_file_type == "narrowPeak":
+            bt = GenomicElements.BedTableNarrowPeak()
 
         bt.load_from_file(region_path)
 
