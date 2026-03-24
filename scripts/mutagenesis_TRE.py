@@ -8,6 +8,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 from RGTools.BedTable import BedTable3, BedTable6, BedTable6Plus
+from RGTools.GenomicElements import GenomicElements
 
 class MutaGenesisTRE:
     @staticmethod
@@ -48,6 +49,7 @@ class MutaGenesisTRE:
     def get_supported_TRE_filetype2class_dict():
         return {"bed3": BedTable3, 
                 "bed6": BedTable6,
+                "narrowPeak": GenomicElements.BedTableNarrowPeak,
                 }
     
     @staticmethod
